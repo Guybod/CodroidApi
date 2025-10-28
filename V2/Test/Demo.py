@@ -1,26 +1,23 @@
-import json
-import time
-import threading
 from Codroid import Codroid
-from Define import BaseRegister
+import threading
+import time
 
-test_project_ID = "mh4iixxj0pr135b8"
-# test_project_ID = "mh07j4zf0pr8c7e7"
+test_project_ID = "mha5llws0pre1ca6"
 
 cod = Codroid("192.168.1.136",9001)
-cod.connect()
+cod.Connect()
 cod.DEBUG = False
 
 # 2.2.1.1运行脚本
 if 0:
-    cod.runScript("a = a+1 \n print(a)",vars={"a":1,"b":2})
+    cod.RunScript("a = a+1 \n print(a)",vars={"a":1,"b":2})
 
 # 2.2.1.2进入远程脚本模式
 if 0:
     cod.enterRemoteScriptMode()
 # 2.2.1.3运行工程
 if 0:
-    cod.runProject(test_project_ID)
+    cod.RunProject(test_project_ID)
 
 # 2.2.1.4单步运行
 if 0:
@@ -168,24 +165,24 @@ if 0:
 if 1:
     def getProjectState_task():
         while True:
-            # res = cod.getRobotStates(500)
-            # print("RobotStates:=====================================================")
-            # Codroid.printSub(res)
-            # res = cod.getRobotPosture(500)
+            res = cod.GetRobotStates()
+            print("RobotStates:=====================================================")
+            Codroid.PrintSub(res)
+            # res = cod.GetRobotPosture()
             # print("RobotPosture:=====================================================")
-            # Codroid.printSub(res)
-            # res = cod.getRobotCoordinate(500)
+            # Codroid.PrintSub(res)
+            # res = cod.GetRobotCoordinate()
             # print("RobotCoordinate:=====================================================")
-            # Codroid.printSub(res)
-            res = cod.getLog(500)
-            print("Log:=====================================================")
-            Codroid.printLog(res)
+            # Codroid.PrintSub(res)
+            # res = cod.GetLog()
+            # print("Log:=====================================================")
+            # Codroid.PrintLog(res)
 
     timer_thread = threading.Thread(target=getProjectState_task)
     timer_thread.daemon = True  # 设置为守护线程
     timer_thread.start()
 
-    # response = cod.runProject(test_project_ID)
+    response = cod.RunProject(test_project_ID)
     time.sleep(60)
 
-cod.disConnect()
+cod.DisConnect()
