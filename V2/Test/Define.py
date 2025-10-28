@@ -9,7 +9,7 @@ class MoveType(Enum):
     Package = 3     # 打包位
     MovJ = 4        # 关节移动
     MovL = 5        # 直线移动
-    faulty = 6      # 恢复故障点
+    Faulty = 6      # 恢复故障点
 
 class BaseRegister(Enum):
     """基础寄存器枚举类，定义机器人系统的基础寄存器地址"""

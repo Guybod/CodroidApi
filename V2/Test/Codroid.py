@@ -33,7 +33,7 @@ class Codroid:
         except Exception as e:
             print(e)
 
-    def DisConnect(self):
+    def Disconnect(self):
         """断开与Codroid的连接"""
         try:
             self.client.disconnect()
@@ -1195,10 +1195,6 @@ class Codroid:
         传送带当量标定
 
         参数：index(int):传送带编号
-            startpoint(list[float]):起点处机器人示教的笛卡尔坐标
-            startcount(int):起点处编码器计数
-            endpoint(list[float]):终点处机器人示教的笛卡尔坐标
-            endcount(int):终点处编码器计数
 
         返回值:
               json: 写入数据命令的响应结果
@@ -1214,83 +1210,150 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return ConveyorConfig.to_dict(json.loads(response)["db"].tostring())
 
-    def MoveTo(self, movType: MoveType):
+    #  2.2.8.7 使用TCP连接相机
+    def ConveyorConnectCamera(self,index:int):
         """
-        控制机器人移动到指定位置
-        
-        参数:
-            movType (MoveType): 移动类型枚举值
-            
-        返回值:
-            json: 移动命令的响应结果
-        """
+       使用TCP连接相机
+
+       参数：index(int):传送带编号
+
+       返回值:
+             json: 写入数据命令的响应结果
+       """
         message_dict = {
-            "id": "m8y21rn20ws8a974",
-            "ty": "Robot/moveTo",
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/connectCamera",
             "db": {
-                "type": movType.value,
-                "target": {
-                    "cp": [],
-                    "jp": [],
-                    "ep": []
-                }
+                "index": index,
             }
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    def __MoveToHeartbeatOnce(self):
+    #  2.2.8.8 断开相机连接
+    def ConveyorDisconnectCamera(self, index: int):
         """
-        发送一次移动心跳信号
-        
-        返回值:
-            json: 心跳信号的响应结果
-        """
+       断开相机连接
+
+       参数：index(int):传送带编号
+
+       返回值:
+             json: 写入数据命令的响应结果
+       """
         message_dict = {
-            "id": "m8y21rn20ws74",
-            "ty": "Robot/moveToHeartbeat"
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/disconnectCamera",
+            "db": {
+                "index": index,
+            }
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    def __MoveToHeartbeatAlways(self, _time: float = 0.5):
+    #  2.2.8.9 获取相机状态
+    def ConveyorGetCameraState(self, index: int):
         """
-        循环发送心跳信号
-        
-        参数:
-            _time (float): 发送间隔时间（秒）
+       获取相机状态
+
+       参数：index(int):传送带编号
+
+       返回值:
+             json: 写入数据命令的响应结果
+             "state":相机状态 0：未连接 1：已连接
+       """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/getCameraState",
+            "db": {
+                "index": index,
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    #  2.2.8.10 发送消息到相机
+    def ConveyorSendMsgToCamera(self, index: int,msg: str):
         """
-        while True:
-            try:
-                message_dict = {
-                    "id": "m8y21rn20ws74",
-                    "ty": "Robot/moveToHeartbeat"
-                }
-                message_str = json.dumps(message_dict)
-                response = self.client.send(message_str, self.DEBUG)
-                return json.loads(response)
-            except Exception as e:
-                print(f"心跳发送失败: {e}")
-            time.sleep(_time)  # 每0.5秒发送一次
+       发送消息到相机
 
+       参数：index(int):传送带编号
+            msg(str):发送的消息
 
+       返回值:
+             json: 写入数据命令的响应结果
+       """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/sendMsgToCamera",
+            "db": {
+                "index": index,
+                "msg": msg
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
 
+    #  2.2.8.11 获取上次触发DI时的编码器计数
+    def ConveyorGetDItriggerEncoderCount(self, index: int) ->int:
+        """
+        获取上次触发DI时的编码器计数
 
+        参数：index(int):传送带编号
 
+        返回值:
+            int: 上一次触发DI时的编码器计数
+        """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/getDItriggerEncoderCount",
+            "db": {
+                "index": index
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return int(json.loads(response)["db"])
 
+    # 2.2.8.12 标定DI信号触发位置
+    def ConveyorCalibrateDItriggerPos(self,index:int,x:float,startcount:int,endcount:int) -> float:
+        """
+        标定DI信号触发位置
 
+        参数：index(int):传送带编号
+            x(float):示教工件的X坐标
+            startcount(int):DI信号触发时的编码器计数
+            endcount(int):示教工件时的编码器计数
 
+        返回值:
+            float: DI信号触发时的x坐标
+        """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Conveyor/calibrateDItriggerPos",
+            "db": {
+                "index": index,
+                "x": x,
+                "startcount": startcount,
+                "endcount": endcount
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return float(json.loads(response)["db"])
 
+    # 2.2.9.1 逆解
     def Cpos2Apos_mm_deg(self, cpos: list[float], reference_joint=None):
         """
         将笛卡尔坐标转换为关节坐标（毫米/度单位）
-        
+
         参数:
             cpos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
             reference_joint: 参考关节坐标
-            
+
         返回值:
             json: 坐标转换命令的响应结果
         """
@@ -1310,7 +1373,8 @@ class Codroid:
             "ty": "Robot/cpostoapos",
             "db": {
                 "cp": [cpos[0], cpos[1], cpos[2], cpos[3], cpos[4], cpos[5]],
-                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3], reference_joint[4], reference_joint[5]],
+                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3],
+                       reference_joint[4], reference_joint[5]],
                 "ep": []
             }
         }
@@ -1318,14 +1382,15 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
+    # 2.2.9.1 逆解
     def Cpos2Apos_m_rad(self, cpos: list[float], reference_joint=None):
         """
         将笛卡尔坐标转换为关节坐标（米/弧度单位）
-        
+
         参数:
             cpos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
             reference_joint: 参考关节坐标
-            
+
         返回值:
             json: 坐标转换命令的响应结果
         """
@@ -1336,7 +1401,9 @@ class Codroid:
         if len(reference_joint) != 6:
             raise ValueError("reference_joint参数长度必须为6")
         else:
-            reference_joint = [math.radians(reference_joint[0]), math.radians(reference_joint[1]), math.radians(reference_joint[2]), math.radians(reference_joint[3]), math.radians(reference_joint[4]), math.radians(reference_joint[5])]
+            reference_joint = [math.radians(reference_joint[0]), math.radians(reference_joint[1]),
+                               math.radians(reference_joint[2]), math.radians(reference_joint[3]),
+                               math.radians(reference_joint[4]), math.radians(reference_joint[5])]
 
         local1: float = cpos[0] * 1000
         local2: float = cpos[1] * 1000
@@ -1350,13 +1417,113 @@ class Codroid:
             "ty": "Robot/cpostoapos",
             "db": {
                 "cp": [local1, local2, local3, local4, local5, local6],
-                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3], reference_joint[4], reference_joint[5]],
+                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3],
+                       reference_joint[4], reference_joint[5]],
                 "ep": []
             }
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
+
+    # 2.2.10.1 RunTo
+    def MoveTo(self, movType: MoveType,cpos:list[float] = None,apos:list[float] = None):
+        """
+        控制机器人移动到指定位置
+        
+        参数:
+            movType (MoveType): 移动类型枚举值
+            cpos(list[float]):笛卡尔坐标
+            apos(list[float]):关节角度
+
+        返回值:
+            json: 移动命令的响应结果
+        """
+        if movType == MoveType.Home or movType == MoveType.Candle or movType == MoveType.faulty \
+                or movType == MoveType.Package or movType == MoveType.Safety:
+            message_dict = {
+                "id": "m8y21rn20ws8a974",
+                "ty": "Robot/moveTo",
+                "db": {
+                    "type": movType.value
+                }
+            }
+        if movType == MoveType.MovL:
+            if cpos is None:
+                raise ValueError("cpos不能为空")
+            message_dict = {
+                "id": "m8y21rn20ws8a974",
+                "ty": "Robot/moveTo",
+                "db": {
+                    "type": movType.value,
+                    "target": {
+                        "cp": cpos,
+                        "jp": [],
+                        "ep": []
+                    }
+                }
+        }
+        if movType == MoveType.MovJ:
+            if apos is None:
+                raise ValueError("apos不能为空")
+            message_dict = {
+                "id": "m8y21rn20ws8a974",
+                "ty": "Robot/moveTo",
+                "db": {
+                    "type": movType.value,
+                    "target": {
+                        "cp": [],
+                        "jp": apos,
+                        "ep": []
+                    }
+                }
+            }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.2.10.2 RunTo心跳
+    def __MoveToHeartbeatOnce(self):
+        """
+        发送一次移动心跳信号
+
+        参数:
+            time (float): 发送间隔时间（秒）
+
+        返回值:
+            json: 心跳信号的响应结果
+        """
+        message_dict = {
+            "id": "m8y21rn20ws74",
+            "ty": "Robot/moveToHeartbeat"
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.2.10.2 RunTo心跳
+    def __MoveToHeartbeatAlways(self, _time: float = 0.5):
+        """
+        循环发送心跳信号
+        
+        参数:
+            time (float): 发送间隔时间（秒）
+
+        返回值:
+            json: 心跳信号的响应结果
+        """
+        while True:
+            try:
+                message_dict = {
+                    "id": "m8y21rn20ws74",
+                    "ty": "Robot/moveToHeartbeat"
+                }
+                message_str = json.dumps(message_dict)
+                response = self.client.send(message_str, self.DEBUG)
+                return json.loads(response)
+            except Exception as e:
+                print(f"心跳发送失败: {e}")
+            time.sleep(_time)  # 每0.5秒发送一次
 
     def GoHome(self):
         """移动到Home位置"""
@@ -1393,127 +1560,22 @@ class Codroid:
         """直线运动的具体实现"""
         return self.MovL(MoveType.MovL, arg)
 
-    def GetProjectState(self, recvTime: int = 200):
+    # 2.2.11.1获取IO值
+    def GetIOValue(self, data: list[dict]):
         """
-        获取项目状态
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 项目状态信息
-        """
-        message_dict = {
-            "ty": "publish/getProjectState",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        获取IO值
 
-    def GetVarUpdate(self, recvTime: int = 200):
-        """
-        获取变量更新信息
-        
         参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 变量更新信息
-        """
-        message_dict = {
-            "ty": "publish/VarUpdate",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+            data (list[dict]): IO数据列表
+            由字典组成{"type": "DI", "port": 0},
 
-    def GetRobotStates(self, recvTime: int = 200):
-        """
-        获取机器人状态信息
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
         返回值:
-            json: 机器人状态信息
+            json: IO值的响应结果
         """
         message_dict = {
-            "ty": "publish/RobotStatus",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
-
-    def GetRobotPosture(self, recvTime: int = 200):
-        """
-        获取机器人姿态信息
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 机器人姿态信息
-        """
-        message_dict = {
-            "ty": "publish/RobotPosture",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
-
-    def GetRobotCoordinate(self, recvTime: int = 200):
-        """
-        获取机器人坐标信息
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 机器人坐标信息
-        """
-        message_dict = {
-            "ty": "publish/obotCoordinate",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
-
-    def GetLog(self, recvTime: int = 200):
-        """
-        获取日志信息
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 日志信息
-        """
-        message_dict = {
-            "ty": "publish/Log",
-            "tc": recvTime
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
-
-    def GetError(self, recvTime: int = 200):
-        """
-        获取错误信息
-        
-        参数:
-            recvTime (int): 接收超时时间（毫秒）
-            
-        返回值:
-            json: 错误信息
-        """
-        message_dict = {
-            "ty": "publish/Error",
-            "tc": recvTime
+            "id": "m912rb1b0wsc2742",
+            "ty": "IOManager/GetIOValue",
+            "db": data
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
@@ -1522,10 +1584,10 @@ class Codroid:
     def GetDI(self, port: int) -> int:
         """
         获取数字输入端口值
-        
+
         参数:
             port (int): 端口号（0-15）
-            
+
         返回值:
             int: 端口值（0或1）
         """
@@ -1550,10 +1612,10 @@ class Codroid:
     def GetAI(self, port: int) -> float:
         """
         获取模拟输入端口值
-        
+
         参数:
             port (int): 端口号（0-3）
-            
+
         返回值:
             float: 端口值
         """
@@ -1578,10 +1640,10 @@ class Codroid:
     def GetDO(self, port: int):
         """
         获取数字输出端口值
-        
+
         参数:
             port (int): 端口号
-            
+
         返回值:
             端口值（0或1）
         """
@@ -1604,10 +1666,10 @@ class Codroid:
     def GetAO(self, port: int):
         """
         获取模拟输出端口值
-        
+
         参数:
             port (int): 端口号
-            
+
         返回值:
             端口值
         """
@@ -1627,14 +1689,35 @@ class Codroid:
             print("在访问过程中，某个键或索引不存在")
             return -1
 
+    #  2.2.11.2 写入IO值
+    def SetIOValue(self, data: list[dict]):
+        """
+        写入IO值
+
+        参数:
+            data (list[dict]): IO数据列表
+            由字典组成{"type": "DI", "port": 0,"value": 1}},
+
+        返回值:
+            json: IO值的响应结果
+        """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "IOManager/SetIOValue",
+            "db": data
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
     def SetDO(self, port: int, value: int):
         """
         设置数字输出端口值
-        
+
         参数:
             port (int): 端口号
             value (int): 要设置的值（0或1）
-            
+
         返回值:
             json: 设置命令的响应结果
         """
@@ -1654,11 +1737,11 @@ class Codroid:
     def SetAO(self, port: int, value: float):
         """
         设置模拟输出端口值
-        
+
         参数:
             port (int): 端口号
             value (float): 要设置的值
-            
+
         返回值:
             json: 设置命令的响应结果
         """
@@ -1673,13 +1756,33 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
+    # 2.2.12.1 获取寄存器值
+    def GetRegisterValue(self,addrlist:list[int]):
+        """
+        获取寄存器值
+
+        参数:
+            addr (list[int]): 寄存器地址列表
+
+        返回值:
+            json: 寄存器的响应结果
+        """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "RegisterManager/GetRegisterValue",
+            "db": addrlist
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
     def GetBaseRegisterValue(self, name: BaseRegister) -> int | None:
         """
         获取基础寄存器值
-        
+
         参数:
             name (BaseRegister): 寄存器名称枚举值
-            
+
         返回值:
             int | None: 寄存器值
         """
@@ -1703,10 +1806,10 @@ class Codroid:
     def GetBoolRegisterValue(self, address: int) -> int:
         """
         获取布尔寄存器值
-        
+
         参数:
             address (int): 寄存器地址（9000-9431）
-            
+
         返回值:
             int: 寄存器值（0或1）
         """
@@ -1726,39 +1829,13 @@ class Codroid:
             print("在访问过程中，某个键或索引不存在")
             return -1
 
-    def SetBoolRegisterValue(self, address: int, value: int):
-        """
-        设置布尔寄存器值
-        
-        参数:
-            address (int): 寄存器地址
-            value (int): 要设置的值（0或1）
-            
-        返回值:
-            json: 设置命令的响应结果
-        """
-        if address < 9032 or address > 9431:
-            raise ValueError("无效的寄存器名称")
-        if value != 0 and value != 1:
-            raise ValueError("值必须为0或1")
-        message_dict = {
-            "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValues",
-            "db": [
-                {"address": address, "value": value}
-            ]
-        }
-        message_str = json.dumps(message_dict)
-        response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
-
     def GetIntRegisterValue(self, address: int) -> int:
         """
         获取整型寄存器值
-        
+
         参数:
             address (int): 寄存器地址（49000-49130，且为偶数）
-            
+
         返回值:
             int: 寄存器值
         """
@@ -1778,14 +1855,36 @@ class Codroid:
             print("在访问过程中，某个键或索引不存在")
             return -1
 
-    def SetIntRegisterValue(self, address: int, value: int):
+
+    # 2.2.12.2 写入寄存器值
+    def SetRegisterValue(self,datalist:list[dict]):
         """
-        设置整型寄存器值
-        
+        获取寄存器值
+
+        参数:
+           datalist(list[dict]): 寄存器地址和值的字典列表
+                {"address": 10000, "value": 0},
+
+        返回值:
+            json: 寄存器的响应结果
+        """
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "RegisterManager/SetRegisterValue",
+            "db": addrlist
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    def SetBoolRegisterValue(self, address: int, value: int):
+        """
+        设置布尔寄存器值
+
         参数:
             address (int): 寄存器地址
-            value (int): 要设置的值
-            
+            value (int): 要设置的值（0或1）
+
         返回值:
             json: 设置命令的响应结果
         """
@@ -1803,3 +1902,167 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
+
+    def SetIntRegisterValue(self, address: int, value: int):
+        """
+        设置整型寄存器值
+
+        参数:
+            address (int): 寄存器地址
+            value (int): 要设置的值
+
+        返回值:
+            json: 设置命令的响应结果
+        """
+        if address < 9032 or address > 9431:
+            raise ValueError("无效的寄存器名称")
+        if value != 0 and value != 1:
+            raise ValueError("值必须为0或1")
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "RegisterManager/SetRegisterValues",
+            "db": [
+                {"address": address, "value": value}
+            ]
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.1 工程状态
+    def GetProjectState(self, recvTime: int = 200):
+        """
+        获取工程状态
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 项目状态信息
+
+        """
+        message_dict = {
+            "ty": "publish/getProjectState",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.2 变量数据更新
+    def GetVarUpdate(self, recvTime: int = 200):
+        """
+        获取变量更新信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 变量更新信息
+        """
+        message_dict = {
+            "ty": "publish/VarUpdate",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.3 机器人状态
+    def GetRobotStates(self, recvTime: int = 200):
+        """
+        获取机器人状态信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 机器人状态信息
+        """
+        message_dict = {
+            "ty": "publish/RobotStatus",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.4 机器人姿态
+    def GetRobotPosture(self, recvTime: int = 200):
+        """
+        获取机器人姿态信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 机器人姿态信息
+        """
+        message_dict = {
+            "ty": "publish/RobotPosture",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.5 机器人坐标系
+    def GetRobotCoordinate(self, recvTime: int = 200):
+        """
+        获取机器人坐标信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 机器人坐标信息
+        """
+        message_dict = {
+            "ty": "publish/obotCoordinate",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.6 系统日志
+    def GetLog(self, recvTime: int = 200):
+        """
+        获取日志信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 日志信息
+        """
+        message_dict = {
+            "ty": "publish/Log",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.4.7 错误信息
+    def GetError(self, recvTime: int = 200):
+        """
+        获取错误信息
+        
+        参数:
+            recvTime (int): 接收超时时间（毫秒）
+            
+        返回值:
+            json: 错误信息
+        """
+        message_dict = {
+            "ty": "publish/Error",
+            "tc": recvTime
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+
+
+
