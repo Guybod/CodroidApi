@@ -13,30 +13,30 @@ class MoveType(Enum):
 
 class BaseRegister(Enum):
     """基础寄存器枚举类，定义机器人系统的基础寄存器地址"""
-    majorVersion = 41000,    # 主版本号寄存器
-    minorVersion = 41001,    # 次版本号寄存器
-    seconds = 41004,         # 秒寄存器
-    milliSeconds = 41006,    # 毫秒寄存器
-    heartBeatToMaster = 41008,    # 发送到主站的心跳寄存器
-    heartBeatFromMaster = 41010,  # 来自主站的心跳寄存器
+    majorVersion = 41000    # 主版本号寄存器
+    minorVersion = 41001    # 次版本号寄存器
+    seconds = 41004         # 秒寄存器
+    milliSeconds = 41006    # 毫秒寄存器
+    heartBeatToMaster = 41008    # 发送到主站的心跳寄存器
+    heartBeatFromMaster = 41010  # 来自主站的心跳寄存器
 
 class ControlRegister(Enum):
     """控制寄存器枚举类，定义机器人控制相关的寄存器地址"""
-    startProject = 1000,          # 启动项目寄存器
-    stopProject = 1001,           # 停止项目寄存器
-    pauseProject = 1002,          # 暂停项目寄存器
-    switchOn = 1003,              # 开启开关寄存器
-    switchOff = 1004,             # 关闭开关寄存器
-    clearWarning = 1005,          # 清除警告寄存器
-    startDrag = 1006,             # 开始拖拽寄存器
-    stopDrag = 1007,              # 停止拖拽寄存器
-    changeToAuto = 1008,          # 切换到自动模式寄存器
-    changeToManual = 1009,        # 切换到手动模式寄存器
-    setAutoMoveRate = 1010,       # 设置自动移动速率寄存器
-    startProjectNumber = 42000,   # 启动项目编号寄存器
-    setAutoMoveRateValue = 42001, # 设置自动移动速率值寄存器
-    setDOPort = 42002,            # 设置DO端口寄存器
-    setDOValue = 42003,           # 设置DO值寄存器
+    startProject = 1000          # 启动项目寄存器
+    stopProject = 1001           # 停止项目寄存器
+    pauseProject = 1002          # 暂停项目寄存器
+    switchOn = 1003              # 开启开关寄存器
+    switchOff = 1004             # 关闭开关寄存器
+    clearWarning = 1005          # 清除警告寄存器
+    startDrag = 1006             # 开始拖拽寄存器
+    stopDrag = 1007              # 停止拖拽寄存器
+    changeToAuto = 1008          # 切换到自动模式寄存器
+    changeToManual = 1009        # 切换到手动模式寄存器
+    setAutoMoveRate = 1010       # 设置自动移动速率寄存器
+    startProjectNumber = 42000   # 启动项目编号寄存器
+    setAutoMoveRateValue = 42001 # 设置自动移动速率值寄存器
+    setDOPort = 42002            # 设置DO端口寄存器
+    setDOValue = 42003           # 设置DO值寄存器
 
 class Typecode:
     """类型码类，用于解析和获取消息类型名称"""
@@ -65,13 +65,13 @@ class Typecode:
 
 class ModbusTcpTableType(Enum):
     """Modbus TCP表类型枚举类，定义支持的数据类型"""
-    int16 = "I16",    # 16位有符号整数
-    uint16 = "U16",   # 16位无符号整数
-    int32 = "I32",    # 32位有符号整数
-    uint32 = "U32",   # 32位无符号整数
-    int64 = "I64",    # 64位有符号整数
-    uint64 = "U64",   # 64位无符号整数
-    float32 = "F32",  # 32位浮点数
+    int16 = "I16"    # 16位有符号整数
+    uint16 = "U16"   # 16位无符号整数
+    int32 = "I32"    # 32位有符号整数
+    uint32 = "U32"   # 32位无符号整数
+    int64 = "I64"    # 64位有符号整数
+    uint64 = "U64"   # 64位无符号整数
+    float32 = "F32"  # 32位浮点数
     float64 = "F64"   # 64位浮点数
 
 class PayloadDict:

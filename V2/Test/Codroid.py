@@ -1,14 +1,44 @@
 # 导入所需的标准库和自定义模块
 import json, math, time, TcpClient
 from functools import singledispatchmethod
-from Define import MoveType, BaseRegister, Typecode, ModbusTcpTableType, PayloadList, ConveyorConfig
+from typing import Union
 
+from Define import MoveType, BaseRegister, Typecode, ModbusTcpTableType, PayloadList, ConveyorConfig
 
 class Codroid:
     """
     Codroid机器人控制类
     提供与Codroid机器人通信和控制的接口
     """
+
+    reserved_words = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+                      "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", "table",
+                      "math",
+                      "DO", "DOGroup", "DIO", "DIOGroup", "AO", "AIO", "ModbusTCP", "setSpeedJ", "setAccJ",
+                      "setSpeedL", "setAccL", "setBlender",
+                      "setMoveRate", "getCoor", "getTool", "setCoor", "editCoor", "setTool", "editTool",
+                      "setPayload", "enableVibrationSuppression", "disableVibrationSuppression",
+                      "setCollisionDetectionSensitivity", "initComplianceControl", "enableComplianceControl",
+                      "disableComplianceControl", "forceControlZeroCalibrate", "setFilterPeriod",
+                      "searchSuccessed", "getJoint", "getTCP", "getCoor", "getTool", "aposToCpos", "cposToApos",
+                      "cposToCpos", "posOffset", "posTrans", "coorRel", "toolRel", "getJointTorque",
+                      "getJointExternalTorque", "createTray", "getTrayPos", "posInverse", "distance", "interPos",
+                      "planeTrans", "getTrajStart", "getTrajEnd", "arrayAdd", "arraySub",
+                      "coorTrans", "movJ", "movL", "movC", "movCircle", "movLW", "movCW", "movTraj", "setWeave",
+                      "weaveStart", "weaveEnd", "setDO", "getDI", "getDO", "setDOGroup", "getDIGroup",
+                      "getDOGroup", "setAO", "getAI", "getAO", "getRegisterBool", "setRegisterBool",
+                      "getRegisterInt", "setRegisterInt", "getRegisterFloat", "setRegisterFloat", "RS485init",
+                      "RS485flush", "RS485write", "RS485read",
+                      "readCoils", "readDiscreteInputs", "readHoldingRegisters", "readInputRegisters",
+                      "writeSingleCoil", "writeSingleRegister", "writeMultipleCoils",
+                      "writeMultipleRegisters", "createSocketClient", "connectSocketClient", "writeSocketClient",
+                      "readSocketClient", "closeSocketClient", "wait", "waitCondition", "systemTime", "stopProject",
+                      "pauseProject", "runScript", "pauseScript", "resumeScript", "stopScript", "callModule",
+                      "print", "setInterruptInterval", "setInterruptCondition", "clearInterrupt", "strcmp",
+                      "strToNumberArray", "arrayToStr",
+                      "enableMultiWeld", "getCurSeam", "isMultiWeldFinished", "setMultiWeldOffset", "weldNextSeam",
+                      "resetMultiWeld", "searchStart", "setMasterFlag", "getOffsetValue", "search", "searchEnd",
+                      "searchOffset", "searchOffsetEnd", "searchError"}
 
     def __init__(self, ip, port):
         """
@@ -23,13 +53,13 @@ class Codroid:
         self.port = port
         self.client = TcpClient.TCPClient()
         self.DEBUG = False
-        self.isConnceted = False
+        self.isConnected = False
 
     def Connect(self):
         """建立与Codroid机器人的连接"""
         try:
             self.client.connect(self.ip, self.port)
-            self.isConnceted = True
+            self.isConnected = True
         except Exception as e:
             print(e)
 
@@ -37,7 +67,7 @@ class Codroid:
         """断开与Codroid的连接"""
         try:
             self.client.disconnect()
-            self.isConnceted = False
+            self.isConnected = False
         except Exception as e:
             print(e)
 
@@ -140,7 +170,7 @@ class Codroid:
     # 2.2.1.1运行脚本
     def RunScript(self, mainProgram: str, subThreadsName: str = None, subThreads: str = None, 
                   subProgramsName: str = None, subPrograms: str = None, interruptsName: str = None, 
-                  interrupts: str = None, _vars: dict = None) -> json:
+                  interrupts: str = None, vars: dict = None) -> json:
         """
         运行脚本函数
         
@@ -152,15 +182,15 @@ class Codroid:
             subPrograms (str, optional): 子程序代码
             interruptsName (str, optional): 中断处理程序名称
             interrupts (str, optional): 中断处理程序代码
-            _vars (dict, optional): 脚本运行时变量字典
+            vars (dict, optional): 脚本运行时变量字典
             
         返回值:
             json: 脚本执行结果的JSON响应
         """
         if mainProgram is None:
             raise Exception("主程序不能为空")
-        if _vars is None:
-            _vars = {}
+        if vars is None:
+            vars = {}
         
         # 构建消息字典，包含脚本信息和变量
         message_dict = {
@@ -170,7 +200,7 @@ class Codroid:
                 "scripts": {
                     "main": mainProgram,
                 },
-                "vars": _vars
+                "vars": vars
             }
         }
         
@@ -442,34 +472,82 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.2.4保存全局变量
-    def SetGlobalVar(self, name: str, value: str, note: str = "") -> json:
+    def SetGlobalVar(self, name: str, value: Union[str, float, dict, list], note: str = " ") -> dict:
         """
-        设置单个全局变量
+        设置单个全局变量 - 统一实现
 
         参数:
             name (str): 变量名
-            value (str): 变量值
+            value: 变量值（支持多种类型）
             note (str): 变量备注
 
         返回值:
-            json: 设置命令的响应结果
+            dict: 设置命令的响应结果
         """
+        # 验证变量名格式
+        if not self.__is_valid_variable_name(name):
+            raise ValueError(f"无效的变量名: {name}")
+
+        # 根据类型进行特定处理
+        processed_value = self.__process_value_based_on_type(value)
+
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "globalVar/saveVars",
             "db": {
                 name: {
-                    "val": value,
+                    "val": processed_value,
                     "nm": note
                 }
             }
         }
-        message_str = json.dumps(message_dict)
+
+        message_str = json.dumps(message_dict, ensure_ascii=False)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
+    @staticmethod
+    def __is_valid_variable_name(name: str) -> bool:
+        """验证变量名格式"""
+        if not name or not isinstance(name, str):
+            return False
+
+        # 变量名必须以字母或下划线开头[3](@ref)
+        if not name[0].isalpha() and name[0] != '_':
+            return False
+
+        # 变量名只能包含字母、数字、下划线[3](@ref)
+        if not all(c.isalnum() or c == '_' for c in name):
+            return False
+
+        return name not in Codroid.reserved_words
+
+    @staticmethod
+    def __process_value_based_on_type(value):
+        """根据值类型进行特定处理"""
+        if isinstance(value, str):
+            # 字符串类型处理
+            return f"\"{value}\""
+        elif isinstance(value, (int, float)):
+            # 数值类型处理
+            return str(value)# 统一转为float
+        # elif isinstance(value, bool):
+        #     # 布尔类型处理
+        #     if value:
+        #         return 'true'
+        #     else:
+        #         return 'false'
+        elif isinstance(value, dict):
+            # 复杂类型处理
+            return json.dumps(value)
+        elif isinstance(value, list):
+            # 列表类型处理
+            return str(value)
+        else:
+            raise TypeError(f"不支持的值类型: {type(value)}")
+
     # 2.2.2.4保存全局变量
-    def SetGlobalVars(self, value: list) -> json:
+    def __SetGlobalVars(self, value: list) -> json:
         """
         批量设置全局变量
 
@@ -779,7 +857,7 @@ class Codroid:
             "db": {
                 "name": devicename,
                 "tableName": tablename,
-                "address": address,
+                "addr": address,
                 "aliasName": aliasname
             }
         }
@@ -809,7 +887,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "ModbusTcp/setName",
+            "ty": "ModbusTcp/setType",
             "db": {
                 "name": devicename,
                 "tableName": tablename,
@@ -839,7 +917,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "ModbusTcp/setName",
+            "ty": "ModbusTcp/setVal",
             "db": {
                 "name": devicename,
                 "tableName": tablename,
@@ -1439,7 +1517,9 @@ class Codroid:
         返回值:
             json: 移动命令的响应结果
         """
-        if movType == MoveType.Home or movType == MoveType.Candle or movType == MoveType.faulty \
+        # 初始化 message_dict 以避免未定义引用
+        message_dict = None
+        if movType == MoveType.Home or movType == MoveType.Candle or movType == MoveType.Faulty \
                 or movType == MoveType.Package or movType == MoveType.Safety:
             message_dict = {
                 "id": "m8y21rn20ws8a974",
@@ -1448,7 +1528,7 @@ class Codroid:
                     "type": movType.value
                 }
             }
-        if movType == MoveType.MovL:
+        elif movType == MoveType.MovL:
             if cpos is None:
                 raise ValueError("cpos不能为空")
             message_dict = {
@@ -1463,7 +1543,7 @@ class Codroid:
                     }
                 }
         }
-        if movType == MoveType.MovJ:
+        elif movType == MoveType.MovJ:
             if apos is None:
                 raise ValueError("apos不能为空")
             message_dict = {
@@ -1547,7 +1627,7 @@ class Codroid:
 
     def GoFaulty(self):
         """移动到Faulty位置"""
-        self.MoveTo(MoveType.faulty)
+        self.MoveTo(MoveType.Faulty)
         return None
 
     @singledispatchmethod
@@ -1792,7 +1872,7 @@ class Codroid:
             message_dict = {
                 "id": "m912rb1b0wsc2742",
                 "ty": "RegisterManager/GetRegisterValue",
-                "db": name.value
+                "db": [name.value]
             }
             message_str = json.dumps(message_dict)
             response = self.client.send(message_str, self.DEBUG)
@@ -1857,12 +1937,12 @@ class Codroid:
 
 
     # 2.2.12.2 写入寄存器值
-    def SetRegisterValue(self,datalist:list[dict]):
+    def SetRegisterValue(self,addrlist:list[dict]):
         """
         获取寄存器值
 
         参数:
-           datalist(list[dict]): 寄存器地址和值的字典列表
+           addrlist(list[dict]): 寄存器地址和值的字典列表
                 {"address": 10000, "value": 0},
 
         返回值:

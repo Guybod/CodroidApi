@@ -55,21 +55,20 @@ class TCPClient:
 if __name__ == "__main__":
     client = TCPClient()
     client.connect("192.168.1.136", 9001)
-    message_dict = {
-        "id": "m8y21rn20ws74",
+    send_json = {
+        "id": "m912wts70ws14d2b",
         "ty": "globalVar/saveVars",
         "db": {
             "bool1": {
-                "nm": 10,
-                "val": '"[1,1,1,1,1]"'
+            "nm": "布尔 1",
+            "val": "true"
             },
-            "bool2": {
-                "nm": 10,
-                "val": '"[1,1,1,1,1]"'
+            "intArr1": {
+            "nm": "整数 1",
+            "val": "[1,2,3,4]"
             }
         }
     }
-    message_str = json.dumps(message_dict)
-    response = client.send(message_str, True)
+    client.send(json.dumps(send_json),debug=True)
 
-
+    client.disconnect()
