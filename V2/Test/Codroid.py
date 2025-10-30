@@ -1,9 +1,9 @@
 # 导入所需的标准库和自定义模块
 import json, math, time, TcpClient
-from functools import singledispatchmethod
 from typing import Union
+from Define import MoveType, BaseRegister, Typecode, ModbusTcpTableType, PayloadList, ConveyorConfig, \
+    ModbusTcpFunctionCodeType
 
-from Define import MoveType, BaseRegister, Typecode, ModbusTcpTableType, PayloadList, ConveyorConfig
 
 class Codroid:
     """
@@ -167,8 +167,106 @@ class Codroid:
         else:
             print(f"db : None")
 
-    # 2.2.1.1运行脚本
-    def RunScript(self, mainProgram: str, subThreadsName: str = None, subThreads: str = None, 
+    @staticmethod
+    # 检查JSON数据中嵌套键是否存在
+    def __has_deviceName(json_data:json, devicename:str)-> bool:
+        """
+        检查JSON数据中嵌套键是否存在
+
+        参数:
+            json_data: JSON数据（字符串或字典）
+            devicename: 设备名
+
+        返回:
+            bool: 如果父子键都存在返回True，否则返回False
+        """
+        if isinstance(json_data, str):
+            try:
+                data = json.loads(json_data)
+            except json.JSONDecodeError:
+                return False
+        else:
+            data = json_data
+
+        # 检查父键存在且是字典，然后检查子键[6](@ref)
+        return ("db" in data and
+                isinstance(data["db"], dict) and
+                devicename in data["db"])
+
+    @staticmethod
+    # 验证变量名
+    def __is_valid_variable_name(name: str) -> bool:
+        """验证变量名格式"""
+        if not name or not isinstance(name, str):
+            return False
+
+        # 变量名必须以字母或下划线开头[3](@ref)
+        if not name[0].isalpha() and name[0] != '_':
+            return False
+
+        # 变量名只能包含字母、数字、下划线[3](@ref)
+        if not all(c.isalnum() or c == '_' for c in name):
+            return False
+
+        return name not in Codroid.reserved_words
+
+    @staticmethod
+    # 处理全局变量输入值
+    def __process_value_based_on_type(value):
+        """根据值类型进行特定处理"""
+        if isinstance(value, str):
+            # 字符串类型处理
+            return f"\"{value}\""
+        elif isinstance(value, (int, float)):
+            # 数值类型处理
+            return str(value)# 统一转为float
+        # elif isinstance(value, bool):
+        #     # 布尔类型处理
+        #     if value:
+        #         return 'true'
+        #     else:
+        #         return 'false'
+        elif isinstance(value, dict):
+            # 复杂类型处理
+            return json.dumps(value)
+        elif isinstance(value, list):
+            # 列表类型处理
+            return str(value)
+        else:
+            raise TypeError(f"不支持的值类型: {type(value)}")
+
+    @staticmethod
+    def __has_tableName(json_data: json, devicename:str,tableName: str) -> bool:
+        """
+        检查JSON数据中是否存在指定的键
+
+        参数:
+            json_data: JSON数据（可以是字符串或字典）
+            target_key: 要查找的键名（如"a"或"b"）
+
+        返回:
+            bool: 如果键存在返回True，否则返回False
+        """
+        # 检查db键是否存在且是字典
+        db_data = json_data.get("db")
+        if not isinstance(db_data, dict):
+            return False
+        # 检查dd键是否存在且是字典
+        dd_data = db_data.get(devicename)
+        if not isinstance(dd_data, dict):
+            return False
+
+        # 检查tables键是否存在且是字典
+        tables_data = dd_data.get("tables")
+        if not isinstance(tables_data, dict):
+            return False
+
+        # 检查目标键是否存在于tables中
+        return tableName in tables_data
+
+
+    # 2.2.1.1 运行脚本
+    def RunScript(self, mainProgram: str, subThreadsName: str = None, subThreads: str = None,
                   subProgramsName: str = None, subPrograms: str = None, interruptsName: str = None, 
                   interrupts: str = None, vars: dict = None) -> json:
         """
@@ -226,7 +324,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.2进入远程脚本模式
+    # 2.2.1.2 进入远程脚本模式
     def EnterRemoteScriptMode(self) -> json:
         """
         进入远程脚本模式
@@ -242,7 +340,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.3运行工程
+    # 2.2.1.3 运行工程
     def RunProject(self, project_id: str) -> json:
         """
         运行指定项目
@@ -264,7 +362,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.4单步运行
+    # 2.2.1.4 单步运行
     def RunStep(self, project_id: str) -> json:
         """
         单步运行指定项目
@@ -286,7 +384,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.5暂停工程
+    # 2.2.1.5 暂停工程
     def PauseProject(self) -> json:
         """
         暂停项目执行
@@ -302,7 +400,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.6恢复运行工程
+    # 2.2.1.6 恢复运行工程
     def ResumeProject(self) -> json:
         """
         恢复项目执行
@@ -318,7 +416,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.7停止运行工程
+    # 2.2.1.7 停止运行工程
     def StopProject(self) -> json:
         """
         停止项目执行
@@ -334,7 +432,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.8设置断点
+    # 2.2.1.8 设置断点
     def SetBreakpoint(self, project_id: str, line_number: list):
         """
         设置断点
@@ -357,7 +455,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.9添加断点
+    # 2.2.1.9 添加断点
     def AddBreakpoint(self, project_id: str, line_number: list):
         """
         添加断点
@@ -380,7 +478,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.10删除断点
+    # 2.2.1.10 删除断点
     def RemoveBreakpoint(self, project_id: str, line_number: list):
         """
         移除断点
@@ -403,7 +501,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.11清除所有断点
+    # 2.2.1.11 清除所有断点
     def ClearBreakpoint(self):
         """
         清除所有断点
@@ -419,7 +517,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.12设置启动行
+    # 2.2.1.12 设置启动行
     def SetStartLine(self, start_line: int):
         """
         设置起始行
@@ -439,7 +537,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.1.13清除从指定行运行
+    # 2.2.1.13 清除从指定行运行
     def ClearStartLine(self):
         """
         清除起始行设置
@@ -455,7 +553,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.2.3获取全局变量
+    # 2.2.2.3 获取全局变量
     def GetGlobalVars(self) -> json:
         """
         获取全局变量
@@ -471,7 +569,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.2.4保存全局变量
+    # 2.2.2.4 保存全局变量
     def SetGlobalVar(self, name: str, value: Union[str, float, dict, list], note: str = " ") -> dict:
         """
         设置单个全局变量 - 统一实现
@@ -506,47 +604,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    @staticmethod
-    def __is_valid_variable_name(name: str) -> bool:
-        """验证变量名格式"""
-        if not name or not isinstance(name, str):
-            return False
-
-        # 变量名必须以字母或下划线开头[3](@ref)
-        if not name[0].isalpha() and name[0] != '_':
-            return False
-
-        # 变量名只能包含字母、数字、下划线[3](@ref)
-        if not all(c.isalnum() or c == '_' for c in name):
-            return False
-
-        return name not in Codroid.reserved_words
-
-    @staticmethod
-    def __process_value_based_on_type(value):
-        """根据值类型进行特定处理"""
-        if isinstance(value, str):
-            # 字符串类型处理
-            return f"\"{value}\""
-        elif isinstance(value, (int, float)):
-            # 数值类型处理
-            return str(value)# 统一转为float
-        # elif isinstance(value, bool):
-        #     # 布尔类型处理
-        #     if value:
-        #         return 'true'
-        #     else:
-        #         return 'false'
-        elif isinstance(value, dict):
-            # 复杂类型处理
-            return json.dumps(value)
-        elif isinstance(value, list):
-            # 列表类型处理
-            return str(value)
-        else:
-            raise TypeError(f"不支持的值类型: {type(value)}")
-
-    # 2.2.2.4保存全局变量
+    # 2.2.2.4 保存全局变量
     def __SetGlobalVars(self, value: list) -> json:
         """
         批量设置全局变量
@@ -567,7 +625,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.2.5删除全局变量
+    # 2.2.2.5 删除全局变量
     def RemoveGlobalVars(self, value_name: list) -> json:
         """
         批量删除全局变量
@@ -587,7 +645,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.3.1获取当前所有工程变量值
+    # 2.2.3.1 获取当前所有工程变量值
     def GetProjectVars(self) -> json:
         """
         获取项目变量
@@ -604,7 +662,7 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.4.1 485初始化
-    def Rs485Init(self, baud_rate: int = 115200, stop_bit: int = 1, data_bit: int = 8, parity: int = 0):
+    def RS485Init(self, baud_rate: int = 115200, stop_bit: int = 1, data_bit: int = 8, parity: int = 0):
         """
         初始化RS485通信参数
 
@@ -612,7 +670,7 @@ class Codroid:
             baud_rate (int): 波特率，默认115200
             stop_bit (int): 停止位，默认1
             data_bit (int): 数据位，默认8
-            parity (int): 校验位，默认0（无校验）
+            parity (int): 校验位，0-无校验，1-奇校验，2-偶校验 默认0
 
         返回值:
             json: 初始化命令的响应结果
@@ -632,7 +690,7 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.4.2 485清空缓存
-    def Rs485FlushReadBuffer(self):
+    def RS485FlushReadBuffer(self):
         """
         清空RS485读缓冲区
 
@@ -648,7 +706,7 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.4.3 485读取数据
-    def Rs485Read(self, length: int, timeout: int = 3000):
+    def RS485Read(self, length: int, timeout: int = 3000):
         """
         从RS485读取数据
 
@@ -672,7 +730,7 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.4.4 485发送数据
-    def Rs485Write(self, data: list[int]):
+    def RS485Write(self, data: list[int] ):
         """
         向RS485写入数据
 
@@ -706,6 +764,48 @@ class Codroid:
             返回值:
                 json: 写入数据命令的响应结果
         """
+        if self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备名称已存在: {devicename},修改请使用Reset")
+
+        if not self.__is_valid_variable_name(devicename):
+            raise ValueError(f"无效的变量名: {devicename}")
+
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "ModbusTcp/setDevice",
+            "db": {
+                "name": devicename,
+                "ip": ip,
+                "port": port,
+                "slaveId": slavedId,
+                "endian": endian
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.2.5.1 ModbusTcp创建设备连接
+    def ResetModbusTcpDevice(self,devicename: str, ip: str, port: int,slavedId: int = 1,endian:int = 1):
+        """
+            创建Tcp设备
+
+            参数:
+                devicename (str): 设备名称,唯一值
+                ip (str): 设备IP地址
+                port (int): 设备端口号
+                slavedId (int): 从机地址
+                endian (int): 字节序：1-大端，2-小端，默认1
+
+            返回值:
+                json: 写入数据命令的响应结果
+        """
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备名称不存在: {devicename},请使用Set")
+
+        if not self.__is_valid_variable_name(devicename):
+            raise ValueError(f"无效的变量名: {devicename}")
+
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setDevice",
@@ -732,6 +832,8 @@ class Codroid:
             返回值:
                 json: 写入数据命令的响应结果
         """
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/removeDevice",
@@ -743,8 +845,8 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.3创建/修改通信表
-    def SetModbusTcpTable(self,devicename: str,tablename:str,functionCode: int,address: int,length: int,period: int = 1000):
+    # 2.2.5.3 创建/修改通信表
+    def SetModbusTcpTable(self,devicename: str,tablename:str,functionCode: ModbusTcpFunctionCodeType,address: int,length: int,period: int = 1000):
         """
         设置Modbus TCP通信表配置
 
@@ -762,17 +864,21 @@ class Codroid:
              json: 写入数据命令的响应结果
             
         """
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
 
-        if functionCode not in [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x0F, 0x10]:
-            raise ValueError("Modbus功能码错误")
+        if self.__has_tableName( self.GetModbusTcpConfig(),devicename,tablename):
+            raise ValueError(f"表名已存在: {tablename},修改请使用Reset")
 
+        if not self.__is_valid_variable_name(tablename):
+            raise ValueError(f"无效的变量名: {tablename}")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setTable",
             "db": {
                 "name": devicename,
                 "tableName": tablename,
-                "functionCode": functionCode,
+                "functionCode": functionCode.value,
                 "addr": address,
                 "count": length,
                 "period": period
@@ -782,7 +888,53 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.4删除通信表
+    # 2.2.5.3 创建/修改通信表
+    def ResetModbusTcpTable(self, devicename: str, tablename: str, functionCode: ModbusTcpFunctionCodeType, address: int, length: int,
+                          period: int = 1000):
+        """
+        设置Modbus TCP通信表配置
+
+        该函数用于配置Modbus TCP设备的通信参数表，定义数据采集的寄存器地址、长度和采集周期等信息。
+
+        参数:
+            devicename (str): 设备
+            tablename (str): 表名，该设备下唯一
+            functionCode (int): Modbus功能码，支持0x01，0x02，0x03，0x04，0x05，0x06，0x0F，0x10
+            address (int): 寄存器起始地址
+            length (int):  读写地址数量
+            period (int, optional): 采集周期，单位为毫秒，默认值为1000ms
+
+        返回值:
+             json: 写入数据命令的响应结果
+
+        """
+
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName( self.GetModbusTcpConfig(),devicename,tablename):
+            raise ValueError(f"表不存在: {tablename},请使用Set")
+
+        if not self.__is_valid_variable_name(tablename):
+            raise ValueError(f"无效的变量名: {tablename}")
+
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "ModbusTcp/setTable",
+            "db": {
+                "name": devicename,
+                "tableName": tablename,
+                "functionCode": functionCode.value,
+                "addr": address,
+                "count": length,
+                "period": period
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.2.5.4 删除通信表
     def RemoveModbusTcpTable(self, devicename: str, tablename: str):
         """
         删除Modbus TCP通信表
@@ -795,6 +947,11 @@ class Codroid:
              json: 写入数据命令的响应结果
 
         """
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName( self.GetModbusTcpConfig(),devicename,tablename):
+            raise ValueError(f"表不存在: {tablename}")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/removeTable",
@@ -807,7 +964,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.5修改表的通信周期
+    # 2.2.5.5 修改表的通信周期
     def SetModbusTcpPeriod(self, devicename: str, tablename: str, period: int):
         """
         修改Modbus TCP通信表的通信周期
@@ -821,6 +978,14 @@ class Codroid:
              json: 写入数据命令的响应结果
 
         """
+
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName( self.GetModbusTcpConfig(),devicename,tablename):
+            raise ValueError(f"表不存在: {tablename}")
+
+
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setPeriod",
@@ -834,7 +999,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.6给地址设置别名
+    # 2.2.5.6 给地址设置别名
     def SetModbusTcpTableName(self, devicename: str, tablename: str,address: int,aliasname: str):
         """
         给Modbus Tcp地址设置别名
@@ -851,6 +1016,14 @@ class Codroid:
              json: 写入数据命令的响应结果
 
         """
+        if not self.__has_deviceName( self.GetModbusTcpConfig(),devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName( self.GetModbusTcpConfig(),devicename,tablename):
+            raise ValueError(f"表不存在: {tablename}")
+
+        if not self.__is_valid_variable_name(aliasname):
+            raise ValueError(f"无效的变量名: {aliasname}")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setName",
@@ -858,14 +1031,14 @@ class Codroid:
                 "name": devicename,
                 "tableName": tablename,
                 "addr": address,
-                "aliasName": aliasname
+                "alias": aliasname
             }
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.7给地址段设置数据类型
+    # 2.2.5.7 给地址段设置数据类型
     def SetModbusTcpTableType(self, devicename: str, tablename: str,address: int,datatype: ModbusTcpTableType,length: int):
         """
         只对保持和输入寄存器有效，对应功能码0x03,0x04,0x06,0x10。
@@ -885,6 +1058,13 @@ class Codroid:
              json: 写入数据命令的响应结果
 
         """
+
+        if not self.__has_deviceName(self.GetModbusTcpConfig(), devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName(self.GetModbusTcpConfig(), devicename, tablename):
+            raise ValueError(f"表不存在: {tablename}")
+
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setType",
@@ -900,7 +1080,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.8修改地址的值
+    # 2.2.5.8 修改地址的值
     def SetModbusTcpValue(self, devicename: str, tablename: str,address: int,value: int):
         """
         只有写表的数据值可修改
@@ -915,6 +1095,13 @@ class Codroid:
              json: 写入数据命令的响应结果
 
         """
+
+        if not self.__has_deviceName(self.GetModbusTcpConfig(), devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName(self.GetModbusTcpConfig(), devicename, tablename):
+            raise ValueError(f"表不存在: {tablename}")
+
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "ModbusTcp/setVal",
@@ -929,7 +1116,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.9获取所有设备配置
+    # 2.2.5.9 获取所有设备配置
     def GetModbusTcpConfig(self):
         """
         获取所有设备配置
@@ -946,7 +1133,7 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.5.10获取所有设备状态
+    # 2.2.5.10 获取所有设备状态
     def GetModbusTcpState(self):
         """
         获取所有设备状态
@@ -962,6 +1149,28 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
+
+    # 2.2.5.11 获取表的值
+    def GetModbusTcpValue(self, devicename: str, tablename: str) -> list:
+        """
+        获取表值
+
+        参数:
+            devicename (str): 设备
+            tablename (str): 表名，该设备下唯一
+
+        返回值:
+            json: 写入数据命令的响应结果
+
+        """
+        if not self.__has_deviceName(self.GetModbusTcpConfig(), devicename):
+            raise ValueError(f"设备不存在: {devicename}")
+
+        if not self.__has_tableName(self.GetModbusTcpConfig(), devicename, tablename):
+            raise ValueError(f"表不存在: {tablename}")
+
+        res = self.GetModbusTcpState()
+        return res["db"][devicename]["tables"][tablename]["val"]
 
     # 2.2.6.1 负载辨识 是否在给定采样位置
     def PayloadIsOnGivenSamplePosition(self,jntTargetPos: list[float],jntActualPos: list[float]) -> bool:
@@ -1461,6 +1670,43 @@ class Codroid:
         return json.loads(response)
 
     # 2.2.9.1 逆解
+    def IK(self, cpos: list[float], reference_joint=None):
+        """
+        将笛卡尔坐标转换为关节坐标（毫米/度单位）
+
+        参数:
+            cpos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
+            reference_joint: 参考关节坐标
+
+        返回值:
+            json: 坐标转换命令的响应结果
+        """
+        if len(cpos) != 6:
+            raise ValueError("cpos参数长度必须为6")
+        if reference_joint is None:
+            reference_joint = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        if len(reference_joint) != 6:
+            raise ValueError("reference_joint参数长度必须为6")
+        else:
+            reference_joint = [math.radians(reference_joint[0]), math.radians(reference_joint[1]),
+                               math.radians(reference_joint[2]), math.radians(reference_joint[3]),
+                               math.radians(reference_joint[4]), math.radians(reference_joint[5])]
+
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Robot/cpostoapos",
+            "db": {
+                "cp": [cpos[0], cpos[1], cpos[2], cpos[3], cpos[4], cpos[5]],
+                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3],
+                       reference_joint[4], reference_joint[5]],
+                "ep": []
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return json.loads(response)
+
+    # 2.2.9.1 逆解
     def Cpos2Apos_m_rad(self, cpos: list[float], reference_joint=None):
         """
         将笛卡尔坐标转换为关节坐标（米/弧度单位）
@@ -1504,23 +1750,23 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.10.1 RunTo
-    def MoveTo(self, movType: MoveType,cpos:list[float] = None,apos:list[float] = None):
+    # 2.2.10.1 MoveTo
+    def MoveTo(self, movType:MoveType, cpos:list[float] = None, apos:list[float] = None):
         """
         控制机器人移动到指定位置
         
         参数:
-            movType (MoveType): 移动类型枚举值
+            movType (MoveType): 移动类型枚举值，当moveType.value == MovJ 或者 MovL spos和apos才有效
             cpos(list[float]):笛卡尔坐标
             apos(list[float]):关节角度
 
         返回值:
             json: 移动命令的响应结果
         """
+
         # 初始化 message_dict 以避免未定义引用
         message_dict = None
-        if movType == MoveType.Home or movType == MoveType.Candle or movType == MoveType.Faulty \
-                or movType == MoveType.Package or movType == MoveType.Safety:
+        if movType in {MoveType.Home, MoveType.Candle, MoveType.Faulty, MoveType.Package, MoveType.Safety}:
             message_dict = {
                 "id": "m8y21rn20ws8a974",
                 "ty": "Robot/moveTo",
@@ -1562,10 +1808,10 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.10.2 RunTo心跳
-    def __MoveToHeartbeatOnce(self):
+    # 2.2.10.2 MoveTo心跳
+    def MoveToHeartbeatOnce(self):
         """
-        发送一次移动心跳信号
+        发送一次移动心跳信号,配合MoveTo使用，需要在MoveTo调用后每0.5s调用一次
 
         参数:
             time (float): 发送间隔时间（秒）
@@ -1581,10 +1827,10 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return json.loads(response)
 
-    # 2.2.10.2 RunTo心跳
-    def __MoveToHeartbeatAlways(self, _time: float = 0.5):
+    # 2.2.10.2 MoveTo心跳
+    def MoveToHeartbeatAlways(self, _time: float = 0.5):
         """
-        循环发送心跳信号
+        循环发送心跳信号，配合MoveTo使用，需要在MoveTo调用后
         
         参数:
             time (float): 发送间隔时间（秒）
@@ -1592,6 +1838,8 @@ class Codroid:
         返回值:
             json: 心跳信号的响应结果
         """
+        if _time <= 0 or _time >= 1:
+            raise ValueError("time参数必须小于1")
         while True:
             try:
                 message_dict = {
@@ -1600,45 +1848,9 @@ class Codroid:
                 }
                 message_str = json.dumps(message_dict)
                 response = self.client.send(message_str, self.DEBUG)
-                return json.loads(response)
             except Exception as e:
                 print(f"心跳发送失败: {e}")
             time.sleep(_time)  # 每0.5秒发送一次
-
-    def GoHome(self):
-        """移动到Home位置"""
-        self.MoveTo(MoveType.Home)
-        return None
-
-    def GoSafety(self):
-        """移动到Safety位置"""
-        self.MoveTo(MoveType.Safety)
-        return None
-
-    def GoCandle(self):
-        """移动到Candle位置"""
-        self.MoveTo(MoveType.Candle)
-        return None
-
-    def GoPackage(self):
-        """移动到Package位置"""
-        self.MoveTo(MoveType.Package)
-        return None
-
-    def GoFaulty(self):
-        """移动到Faulty位置"""
-        self.MoveTo(MoveType.Faulty)
-        return None
-
-    @singledispatchmethod
-    def MovL(self, arg):
-        """直线运动方法的函数重载装饰器"""
-        raise NotImplementedError(f"不支持的类型: {type(arg)}")
-
-    @MovL.register(list)
-    def _(self, arg: list[float]):
-        """直线运动的具体实现"""
-        return self.MovL(MoveType.MovL, arg)
 
     # 2.2.11.1获取IO值
     def GetIOValue(self, data: list[dict]):
@@ -1727,6 +1939,8 @@ class Codroid:
         返回值:
             端口值（0或1）
         """
+        if port < 0 or port > 15:
+            raise ValueError("端口号必须在0-15之间")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "IOManager/GetIOValue",
@@ -1753,6 +1967,8 @@ class Codroid:
         返回值:
             端口值
         """
+        if port < 0 or port > 3:
+            raise ValueError("端口号必须在0-3之间")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "IOManager/GetIOValue",
@@ -1783,7 +1999,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "IOManager/SetIOValue",
+            "ty": "IOManager/SetIOValues",
             "db": data
         }
         message_str = json.dumps(message_dict)
@@ -1866,9 +2082,22 @@ class Codroid:
         返回值:
             int | None: 寄存器值
         """
-        if name not in BaseRegister:
-            raise ValueError("无效的寄存器名称")
-        if name == BaseRegister.majorVersion or name == BaseRegister.minorVersion:
+        if name in {BaseRegister.majorVersion, BaseRegister.minorVersion}:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/GetRegisterValue",
+                "db": [name.value]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            try:
+                value = int(json.loads(response)['db'][0]['value'])
+                return value
+            except (KeyError, IndexError):
+                print("在访问过程中，某个键或索引不存在")
+                return -1
+
+        if name in {BaseRegister.seconds, BaseRegister.milliSeconds,BaseRegister.heartBeatFromMaster,BaseRegister.heartBeatToMaster}:
             message_dict = {
                 "id": "m912rb1b0wsc2742",
                 "ty": "RegisterManager/GetRegisterValue",

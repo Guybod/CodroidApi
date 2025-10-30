@@ -25,8 +25,8 @@ class ControlRegister(Enum):
     startProject = 1000          # 启动项目寄存器
     stopProject = 1001           # 停止项目寄存器
     pauseProject = 1002          # 暂停项目寄存器
-    switchOn = 1003              # 开启开关寄存器
-    switchOff = 1004             # 关闭开关寄存器
+    switchOn = 1003              # 上电寄存器
+    switchOff = 1004             # 下电寄存器
     clearWarning = 1005          # 清除警告寄存器
     startDrag = 1006             # 开始拖拽寄存器
     stopDrag = 1007              # 停止拖拽寄存器
@@ -37,6 +37,27 @@ class ControlRegister(Enum):
     setAutoMoveRateValue = 42001 # 设置自动移动速率值寄存器
     setDOPort = 42002            # 设置DO端口寄存器
     setDOValue = 42003           # 设置DO值寄存器
+
+class StatusRegister(Enum):
+    """状态寄存器枚举类，定义机器人状态相关的寄存器地址"""
+    isProjectRunning = 2000     # 项目是否运行
+    isProjectStopped = 2001     # 项目是否停止
+    isProjectPaused = 2002      # 项目是否暂停
+    isSwitchOn = 2003           # 机器人是否上电
+    isSwitchOff = 2004          # 机器人是否下电
+    isManualMode = 2005         # 机器人是否处于手动模式
+    isDragging = 2006           # 机器人是否正在拖拽
+    isSingleMoving = 2007       # 机器人是否正在执行单轴移动
+    isCollisionStopped = 2008   # 机器人是否被碰撞停止
+    isOnSafetyPosition = 2009   # 机器人是否处于安全位
+    isWarning = 2010            # 机器人是否处于警告状态
+    isSimulation = 2011         # 机器人是否处于模拟模式
+    isESButtonPressed = 2012    # 是否按下急停按钮
+    isRescueMode = 2013         # 机器人是否处于救援模式
+    isAutoMode = 2014           # 机器人是否处于自动模式
+    isRemoteMode = 2015         # 机器人是否处于远程模式
+    autoMoveRateValue =45000    # 自动移动速率值
+
 
 class Typecode:
     """类型码类，用于解析和获取消息类型名称"""
@@ -73,6 +94,17 @@ class ModbusTcpTableType(Enum):
     uint64 = "U64"   # 64位无符号整数
     float32 = "F32"  # 32位浮点数
     float64 = "F64"   # 64位浮点数
+
+class ModbusTcpFunctionCodeType(Enum):
+    """Modbus TCP 功能码"""
+    ReadCoils = 0x01                # 读线圈寄存器
+    ReadDiscreteInputs = 0x02       # 读离散输入寄存器
+    ReadHoldingRegisters = 0x03     # 读保持寄存器
+    ReadInputRegisters = 0x04       # 读输入寄存器
+    WriteSingleCoil = 0x05          # 写单个线圈寄存器
+    WriteSingleRegister = 0x06      # 写单个保持寄存器
+    WriteMultipleCoils = 0x0F       # 写多个线圈寄存器
+    WriteMultipleHolds = 0x10       # 写多个保持寄存器
 
 class PayloadDict:
     """
