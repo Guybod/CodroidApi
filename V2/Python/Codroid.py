@@ -1,9 +1,8 @@
 # 导入所需的标准库和自定义模块
 import json, math, time, TcpClient
+from json import JSONDecodeError, JSONDecoder
 from typing import Union
-from Define import MoveType, BaseRegister, Typecode, ModbusTcpTableType, PayloadList, ConveyorConfig, \
-    ModbusTcpFunctionCodeType
-
+from Define import *
 
 class Codroid:
     """
@@ -51,14 +50,15 @@ class Codroid:
         self.heartbeat_thread = None
         self.ip = ip
         self.port = port
-        self.client = TcpClient.TCPClient()
+        self.client = TcpClient.TCPClient(ip,port)
         self.DEBUG = False
         self.isConnected = False
+        self.default_timeout = 5.0 # 默认超时时间（秒）
 
     def Connect(self):
         """建立与Codroid机器人的连接"""
         try:
-            self.client.connect(self.ip, self.port)
+            self.client.connect()
             self.isConnected = True
         except Exception as e:
             print(e)
@@ -264,7 +264,27 @@ class Codroid:
         # 检查目标键是否存在于tables中
         return tableName in tables_data
 
-
+    def _safe_parse_response(self,response: str):
+        """
+        尝试安全解析 response:
+        1) 先用 self._safe_parse_response 解析全部
+        2) 失败时用 JSONDecoder.raw_decode 解析第一个 JSON 对象并返回
+        """
+        if response is None:
+            return None
+        try:
+            return json.loads(response)
+        except JSONDecodeError:
+            try:
+                decoder = JSONDecoder()
+                obj, idx = decoder.raw_decode(response)
+                return obj
+            except JSONDecodeError:
+                # 最后回退：取首行再尝试解析（若返回中带有日志等）
+                first = response.splitlines()[0].strip()
+                return json.loads(first)
+    
+    
     # 2.2.1.1 运行脚本
     def RunScript(self, mainProgram: str, subThreadsName: str = None, subThreads: str = None,
                   subProgramsName: str = None, subPrograms: str = None, interruptsName: str = None, 
@@ -322,7 +342,7 @@ class Codroid:
 
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.2 进入远程脚本模式
     def EnterRemoteScriptMode(self) -> json:
@@ -338,7 +358,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.3 运行工程
     def RunProject(self, project_id: str) -> json:
@@ -360,7 +380,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.4 单步运行
     def RunStep(self, project_id: str) -> json:
@@ -382,7 +402,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.5 暂停工程
     def PauseProject(self) -> json:
@@ -398,7 +418,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.6 恢复运行工程
     def ResumeProject(self) -> json:
@@ -414,7 +434,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.7 停止运行工程
     def StopProject(self) -> json:
@@ -430,7 +450,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.8 设置断点
     def SetBreakpoint(self, project_id: str, line_number: list):
@@ -453,7 +473,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.9 添加断点
     def AddBreakpoint(self, project_id: str, line_number: list):
@@ -476,7 +496,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.10 删除断点
     def RemoveBreakpoint(self, project_id: str, line_number: list):
@@ -499,7 +519,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.11 清除所有断点
     def ClearBreakpoint(self):
@@ -515,7 +535,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.12 设置启动行
     def SetStartLine(self, start_line: int):
@@ -535,7 +555,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.1.13 清除从指定行运行
     def ClearStartLine(self):
@@ -551,7 +571,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.2.3 获取全局变量
     def GetGlobalVars(self) -> json:
@@ -567,7 +587,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
     def SetGlobalVar(self, name: str, value: Union[str, float, dict, list], note: str = " ") -> dict:
@@ -602,7 +622,7 @@ class Codroid:
 
         message_str = json.dumps(message_dict, ensure_ascii=False)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
     def __SetGlobalVars(self, value: list) -> json:
@@ -623,7 +643,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.2.5 删除全局变量
     def RemoveGlobalVars(self, value_name: list) -> json:
@@ -643,7 +663,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.3.1 获取当前所有工程变量值
     def GetProjectVars(self) -> json:
@@ -659,7 +679,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.4.1 485初始化
     def RS485Init(self, baud_rate: int = 115200, stop_bit: int = 1, data_bit: int = 8, parity: int = 0):
@@ -687,7 +707,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.4.2 485清空缓存
     def RS485FlushReadBuffer(self):
@@ -703,7 +723,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.4.3 485读取数据
     def RS485Read(self, length: int, timeout: int = 3000):
@@ -727,7 +747,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.4.4 485发送数据
     def RS485Write(self, data: list[int] ):
@@ -747,7 +767,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.1 ModbusTcp创建设备连接
     def SetModbusTcpDevice(self,devicename: str, ip: str, port: int,slavedId: int = 1,endian:int = 1):
@@ -783,7 +803,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.1 ModbusTcp创建设备连接
     def ResetModbusTcpDevice(self,devicename: str, ip: str, port: int,slavedId: int = 1,endian:int = 1):
@@ -819,7 +839,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.2 ModbusTcp删除连接设备
     def RemoveModbusTcpDevice(self,devicename: str):
@@ -843,7 +863,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.3 创建/修改通信表
     def SetModbusTcpTable(self,devicename: str,tablename:str,functionCode: ModbusTcpFunctionCodeType,address: int,length: int,period: int = 1000):
@@ -886,7 +906,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.3 创建/修改通信表
     def ResetModbusTcpTable(self, devicename: str, tablename: str, functionCode: ModbusTcpFunctionCodeType, address: int, length: int,
@@ -932,7 +952,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.4 删除通信表
     def RemoveModbusTcpTable(self, devicename: str, tablename: str):
@@ -962,7 +982,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.5 修改表的通信周期
     def SetModbusTcpPeriod(self, devicename: str, tablename: str, period: int):
@@ -997,7 +1017,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.6 给地址设置别名
     def SetModbusTcpTableName(self, devicename: str, tablename: str,address: int,aliasname: str):
@@ -1036,7 +1056,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.7 给地址段设置数据类型
     def SetModbusTcpTableType(self, devicename: str, tablename: str,address: int,datatype: ModbusTcpTableType,length: int):
@@ -1078,7 +1098,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.8 修改地址的值
     def SetModbusTcpValue(self, devicename: str, tablename: str,address: int,value: int):
@@ -1114,7 +1134,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.9 获取所有设备配置
     def GetModbusTcpConfig(self):
@@ -1131,7 +1151,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.10 获取所有设备状态
     def GetModbusTcpState(self):
@@ -1148,7 +1168,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.5.11 获取表的值
     def GetModbusTcpValue(self, devicename: str, tablename: str) -> list:
@@ -1200,7 +1220,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return bool(json.loads(response)["db"])
+        return bool(self._safe_parse_response(response)["db"])
 
     # 2.2.6.2传感器数据采样
     def PayloadLoadIdenJSSample(self):
@@ -1217,7 +1237,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.6.3负载辨识计算接口
     def PayloadIdentificationJS(self,payload:PayloadList):
@@ -1260,7 +1280,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.7.1初始化拖动参数
     def SetDefaultDragParam(self):
@@ -1277,7 +1297,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.7.2获取拖动灵敏度
     def GetDragSensitivity(self) -> int:
@@ -1294,7 +1314,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return int(json.loads(response)["db"]["sensitivity"])
+        return int(self._safe_parse_response(response)["db"]["sensitivity"])
 
     # 2.2.7.3获取拖动模式
     def GetDragMode(self) -> int:
@@ -1311,7 +1331,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return int(json.loads(response)["db"])
+        return int(self._safe_parse_response(response)["db"])
 
     # 2.2.7.4开启/关闭拖动姿态锁
     def SetCartOriLock(self, enable: bool) -> bool:
@@ -1334,7 +1354,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return bool(json.loads(response)["db"])
+        return bool(self._safe_parse_response(response)["db"])
 
     # 2.2.7.5获取拖动姿态锁的状态
     def GetCartOriLockState(self) -> bool:
@@ -1351,7 +1371,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return bool(json.loads(response)["db"])
+        return bool(self._safe_parse_response(response)["db"])
 
     # 2.2.8.1获取编码器计数
     def GetEncoderCount(self,index:int) -> int:
@@ -1373,7 +1393,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)["db"]
+        return self._safe_parse_response(response)["db"]
 
     # 2.2.8.2使能传送带
     def EnableConveyor(self, index:int):
@@ -1397,7 +1417,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.8.3取消使能传送带
     def DisableConveyor(self, index: int):
@@ -1418,7 +1438,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.8.4传送带当量标定
     def CalibrateConveyor(self, index: int, startpoint: list[float], startcount: int, endpoint: list[float], endcount: int) -> int:
@@ -1453,7 +1473,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return int(json.loads(response)["db"])
+        return int(self._safe_parse_response(response)["db"])
 
     # 2.2.8.5设置传送带配置参数
     def SetConveyorConfig(self, config: ConveyorConfig):
@@ -1474,7 +1494,7 @@ class Codroid:
 
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.8.6获取传送带配置参数
     def GetConveyorConfig(self, index: int) -> dict:
@@ -1495,7 +1515,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return ConveyorConfig.to_dict(json.loads(response)["db"].tostring())
+        return ConveyorConfig.to_dict(self._safe_parse_response(response)["db"].tostring())
 
     #  2.2.8.7 使用TCP连接相机
     def ConveyorConnectCamera(self,index:int):
@@ -1516,7 +1536,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     #  2.2.8.8 断开相机连接
     def ConveyorDisconnectCamera(self, index: int):
@@ -1537,7 +1557,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     #  2.2.8.9 获取相机状态
     def ConveyorGetCameraState(self, index: int):
@@ -1559,7 +1579,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     #  2.2.8.10 发送消息到相机
     def ConveyorSendMsgToCamera(self, index: int,msg: str):
@@ -1582,7 +1602,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     #  2.2.8.11 获取上次触发DI时的编码器计数
     def ConveyorGetDItriggerEncoderCount(self, index: int) ->int:
@@ -1603,7 +1623,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return int(json.loads(response)["db"])
+        return int(self._safe_parse_response(response)["db"])
 
     # 2.2.8.12 标定DI信号触发位置
     def ConveyorCalibrateDItriggerPos(self,index:int,x:float,startcount:int,endcount:int) -> float:
@@ -1630,7 +1650,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return float(json.loads(response)["db"])
+        return float(self._safe_parse_response(response)["db"])
 
     # 2.2.9.1 逆解
     def Cpos2Apos_mm_deg(self, cpos: list[float], reference_joint=None):
@@ -1667,7 +1687,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.9.1 逆解
     def IK(self, cpos: list[float], reference_joint=None):
@@ -1704,7 +1724,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.9.1 逆解
     def Cpos2Apos_m_rad(self, cpos: list[float], reference_joint=None):
@@ -1748,7 +1768,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.10.1 MoveTo
     def MoveTo(self, movType:MoveType, cpos:list[float] = None, apos:list[float] = None):
@@ -1806,7 +1826,7 @@ class Codroid:
             }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.10.2 MoveTo心跳
     def MoveToHeartbeatOnce(self):
@@ -1825,7 +1845,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.10.2 MoveTo心跳
     def MoveToHeartbeatAlways(self, _time: float = 0.5):
@@ -1871,7 +1891,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     def GetDI(self, port: int) -> int:
         """
@@ -1895,7 +1915,7 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = json.loads(response)['db'][0]['value']
+            value = self._safe_parse_response(response)['db'][0]['value']
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
@@ -1923,7 +1943,7 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = json.loads(response)['db'][0]['value']
+            value = self._safe_parse_response(response)['db'][0]['value']
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
@@ -1951,7 +1971,7 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = json.loads(response)['db'][0]['value']
+            value = self._safe_parse_response(response)['db'][0]['value']
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
@@ -1979,7 +1999,7 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = json.loads(response)['db'][0]['value']
+            value = self._safe_parse_response(response)['db'][0]['value']
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
@@ -2004,7 +2024,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     def SetDO(self, port: int, value: int):
         """
@@ -2028,7 +2048,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     def SetAO(self, port: int, value: float):
         """
@@ -2050,7 +2070,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.2.12.1 获取寄存器值
     def GetRegisterValue(self,addrlist:list[int]):
@@ -2070,7 +2090,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     def GetBaseRegisterValue(self, name: BaseRegister) -> int | None:
         """
@@ -2091,7 +2111,7 @@ class Codroid:
             message_str = json.dumps(message_dict)
             response = self.client.send(message_str, self.DEBUG)
             try:
-                value = int(json.loads(response)['db'][0]['value'])
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
                 return value
             except (KeyError, IndexError):
                 print("在访问过程中，某个键或索引不存在")
@@ -2106,7 +2126,107 @@ class Codroid:
             message_str = json.dumps(message_dict)
             response = self.client.send(message_str, self.DEBUG)
             try:
-                value = int(json.loads(response)['db'][0]['value'])
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
+                return value
+            except (KeyError, IndexError):
+                print("在访问过程中，某个键或索引不存在")
+                return -1
+
+    def GetControlRegisterValue(self, name: ControlRegister):
+        """
+       获取控制寄存器值
+
+       参数:
+           name (ControlRegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值
+       """
+        if name in ControlRegister:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/GetRegisterValue",
+                "db": [name.value]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            try:
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
+                return value
+            except (KeyError, IndexError):
+                print("在访问过程中，某个键或索引不存在")
+                return -1
+
+    def GetStatusRegisterValue(self, name: StatusRegister):
+        """
+       获取状态寄存器值
+
+       参数:
+           name (StatusRegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值
+       """
+        if name in StatusRegister:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/GetRegisterValue",
+                "db": [name.value]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            try:
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
+                return value
+            except (KeyError, IndexError):
+                print("在访问过程中，某个键或索引不存在")
+                return -1
+
+    def GetMotionInfoRegisterValue(self, name: MotionInfoRegister):
+        """
+       获取位置信息寄存器值
+
+       参数:
+           name (MotionInfoRegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值,单位：米(m)，弧度(deg)
+       """
+        if name in MotionInfoRegister:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/GetRegisterValue",
+                "db": [name.value]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            try:
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
+                return value
+            except (KeyError, IndexError):
+                print("在访问过程中，某个键或索引不存在")
+                return -1
+
+    def GetIORegisterValue(self, name: IORegister):
+        """
+       获取IO寄存器值
+
+       参数:
+           name (IORegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值
+       """
+        if name in IORegister:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/GetRegisterValue",
+                "db": [name.value]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            try:
+                value = int(self._safe_parse_response(response)['db'][0]['value'])
                 return value
             except (KeyError, IndexError):
                 print("在访问过程中，某个键或索引不存在")
@@ -2132,7 +2252,7 @@ class Codroid:
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = int(json.loads(response)['db'][0]['value'])
+            value = int(self._safe_parse_response(response)['db'][0]['value'])
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
@@ -2153,17 +2273,42 @@ class Codroid:
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "RegisterManager/GetRegisterValue",
-            "db": [address, address + 1]
+            "db": [address]
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         try:
-            value = int(json.loads(response)['db'][0]['value'])
+            value = int(self._safe_parse_response(response)['db'][0]['value'])
             return value
         except (KeyError, IndexError):
             print("在访问过程中，某个键或索引不存在")
             return -1
 
+    def GetRealVariableRegister(self,address:int) ->float:
+        """
+        获取整型寄存器值
+
+        参数:
+            address (int): 寄存器地址（49200-49330，且为偶数）
+
+        返回值:
+            int: 寄存器值
+        """
+        if address < 49200 or address > 49330 or address % 2 != 0:
+            raise ValueError("无效的寄存器名称")
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "RegisterManager/GetRegisterValue",
+            "db": [address]
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        try:
+            value = int(self._safe_parse_response(response)['db'][0]['value'])
+            return value
+        except (KeyError, IndexError):
+            print("在访问过程中，某个键或索引不存在")
+            return -1
 
     # 2.2.12.2 写入寄存器值
     def SetRegisterValue(self,addrlist:list[dict]):
@@ -2179,19 +2324,63 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValue",
+            "ty": "RegisterManager/SetRegisterValues",
             "db": addrlist
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
+
+    def SetControlRegisterValue(self, name: ControlRegister, value: int):
+        """
+       设置控制寄存器值
+
+       参数:
+           name (ControlRegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值
+       """
+        if name in ControlRegister:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/SetRegisterValues",
+                "db": [
+                    {"address": name, "value": value}
+                ]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            return self._safe_parse_response(response)
+
+    def SetIORegisterValue(self,name:IORegister,value:int):
+        """
+       设置IO寄存器值
+
+       参数:
+           name (IORegister): 寄存器名称枚举值
+
+       返回值:
+           int | Uint16 |None: 寄存器值
+       """
+        if name in {IORegister.readDIStartPort0,IORegister.readDIStartPort1,IORegister.readDIStartPort2,IORegister.readDIStartPort3}:
+            message_dict = {
+                "id": "m912rb1b0wsc2742",
+                "ty": "RegisterManager/SetRegisterValues",
+                "db": [
+                        {"address": name, "value": value}
+                ]
+            }
+            message_str = json.dumps(message_dict)
+            response = self.client.send(message_str, self.DEBUG)
+            return self._safe_parse_response(response)
 
     def SetBoolRegisterValue(self, address: int, value: int):
         """
         设置布尔寄存器值
 
         参数:
-            address (int): 寄存器地址
+            address (int): 寄存器地址(9032~9431)
             value (int): 要设置的值（0或1）
 
         返回值:
@@ -2210,23 +2399,21 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     def SetIntRegisterValue(self, address: int, value: int):
         """
         设置整型寄存器值
 
         参数:
-            address (int): 寄存器地址
+            address (int): 寄存器地址 (49100~49130)且为偶数
             value (int): 要设置的值
 
         返回值:
             json: 设置命令的响应结果
         """
-        if address < 9032 or address > 9431:
+        if address < 49100 or address > 49130 or address % 2 != 0:
             raise ValueError("无效的寄存器名称")
-        if value != 0 and value != 1:
-            raise ValueError("值必须为0或1")
         message_dict = {
             "id": "m912rb1b0wsc2742",
             "ty": "RegisterManager/SetRegisterValues",
@@ -2236,36 +2423,60 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
+
+    def SetRealRegisterValue(self, address: int, value: float):
+        """
+        设置浮点型寄存器值
+
+        参数:
+            address (int): 寄存器地址 (49100~49130)且为偶数
+            value (float): 要设置的值
+
+        返回值:
+            json: 设置命令的响应结果
+        """
+        if address < 49300 or address > 49330 or address % 2 != 0:
+            raise ValueError("无效的寄存器名称")
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "RegisterManager/SetRegisterValues",
+            "db": [
+                {"address": address, "value": value}
+            ]
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
 
     # 2.4.1 工程状态
     def GetProjectState(self, recvTime: int = 200):
         """
         获取工程状态
-        
+
         参数:
             recvTime (int): 接收超时时间（毫秒）
-            
+
         返回值:
             json: 项目状态信息
 
         """
         message_dict = {
-            "ty": "publish/getProjectState",
+            "ty": "publish/ProjectState",
             "tc": recvTime
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.2 变量数据更新
     def GetVarUpdate(self, recvTime: int = 200):
         """
         获取变量更新信息
-        
+
         参数:
             recvTime (int): 接收超时时间（毫秒）
-            
+
         返回值:
             json: 变量更新信息
         """
@@ -2275,7 +2486,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.3 机器人状态
     def GetRobotStates(self, recvTime: int = 200):
@@ -2294,7 +2505,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.4 机器人姿态
     def GetRobotPosture(self, recvTime: int = 200):
@@ -2313,7 +2524,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.5 机器人坐标系
     def GetRobotCoordinate(self, recvTime: int = 200):
@@ -2332,7 +2543,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.6 系统日志
     def GetLog(self, recvTime: int = 200):
@@ -2351,7 +2562,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
     # 2.4.7 错误信息
     def GetError(self, recvTime: int = 200):
@@ -2370,7 +2581,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
-        return json.loads(response)
+        return self._safe_parse_response(response)
 
 
 

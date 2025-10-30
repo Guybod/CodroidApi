@@ -1,7 +1,7 @@
 from Codroid import Codroid
 import threading
 import time
-from Define import ModbusTcpFunctionCodeType,ModbusTcpTableType, MoveType, BaseRegister
+from Define import *
 
 # 车间
 # test_project_ID = "mha5llws0pre1ca6"
@@ -214,10 +214,118 @@ if 0:
 # 2.2.12.1 获取寄存器值
 if 0:
     cod.GetRegisterValue([41004,41005])
+
+if 0:
     cod.GetBaseRegisterValue(BaseRegister.majorVersion)
     cod.GetBaseRegisterValue(BaseRegister.minorVersion)
     cod.GetBaseRegisterValue(BaseRegister.seconds)
     cod.GetBaseRegisterValue(BaseRegister.milliSeconds)
     cod.GetBaseRegisterValue(BaseRegister.heartBeatToMaster)
     cod.GetBaseRegisterValue(BaseRegister.heartBeatFromMaster)
+
+if 0:
+    cod.GetControlRegisterValue(ControlRegister.changeToAuto)
+    cod.GetControlRegisterValue(ControlRegister.setAutoMoveRateValue)
+    cod.GetControlRegisterValue(ControlRegister.clearWarning)
+
+if 0:
+    cod.GetStatusRegisterValue(StatusRegister.isSimulation)
+
+if 0:
+    cod.GetMotionInfoRegisterValue(MotionInfoRegister.endPositionA)
+    cod.GetMotionInfoRegisterValue(MotionInfoRegister.endPositionZ)
+
+if 0:
+    cod.GetIORegisterValue(IORegister.readDIStartPort1)
+
+if 0:
+    cod.GetBoolRegisterValue(9000)
+
+if 0:
+    cod.GetIntRegisterValue(49000)
+
+if 0:
+    cod.GetRealVariableRegister(49200)
+
+# 2.2.12.2 设置寄存器值(无效)
+if 0:
+    cod.SetRegisterValue(
+        [
+            {"address":49102, "value":123},
+            {"address":49330, "value":12.345}
+        ]
+    )
+
+if 0:
+    cod.SetBoolRegisterValue(9431, 1)
+
+# 2.4.1 工程状态
+if 0:
+    cod.RunProject(test_project_ID)
+    time.sleep(1)
+    print(1)
+    cod.GetProjectState()
+    time.sleep(2)
+    print(1)
+    cod.PauseProject()
+    time.sleep(2)
+    print(1)
+    cod.GetProjectState()
+    time.sleep(3)
+    print(1)
+    cod.StopProject()
+    time.sleep(2)
+    print(1)
+    cod.GetProjectState()
+    time.sleep(2)
+
+# 2.4.2 变量数据
+if 0:
+    # cod.GetVarUpdate()
+    time.sleep(1)
+    cod.RunScript(mainProgram="a = a+b \nprint(a)", vars={"a":10,"b":20})
+    time.sleep(1)
+    cod.GetVarUpdate()
+    time.sleep(1)
+
+# 2.4.3 机器人状态
+# 2.4.4 机器人位姿
+# 2.4.5 机器人坐标系
+if 0:
+    cod.DEBUG = False
+    def robot_state_thread():
+        while True:
+            res = cod.GetRobotStates()
+            cod.PrintSub(res)
+            res2 = cod.GetRobotPosture()
+            cod.PrintSub(res2)
+            time.sleep(0.5)
+
+    t = threading.Thread(target=robot_state_thread, daemon=True)
+    t.start()
+
+    cod.RunProject(test_project_ID)
+
+    t.join( )
+
+
+# 2.4.6 系统日志
+if 0:
+    cod.DEBUG = False
+
+    def robot_state_thread():
+        while True:
+            res = cod.GetLog()
+            cod.PrintLog(res)
+            time.sleep(0.5)
+
+    t = threading.Thread(target=robot_state_thread, daemon=True)
+    t.start()
+    cod.RunScript(mainProgram="wait(2)\na = a+b \nprint(a)\nwait(2)", vars={"a": 10, "b": 20})
+    time.sleep(2)
+    cod.RunScript(mainProgram="wait(2)\na = a+b \nprint(a)\nwait(2)", vars={"a": 10, "b": 20})
+    time.sleep(2)
+
+# 2.4.7 警告信息
+
 cod.Disconnect()

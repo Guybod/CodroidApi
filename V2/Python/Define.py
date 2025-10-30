@@ -1,4 +1,5 @@
 from enum import Enum
+from symtable import Class
 from typing import  Dict, Any
 
 class MoveType(Enum):
@@ -57,6 +58,45 @@ class StatusRegister(Enum):
     isAutoMode = 2014           # 机器人是否处于自动模式
     isRemoteMode = 2015         # 机器人是否处于远程模式
     autoMoveRateValue =45000    # 自动移动速率值
+
+class MotionInfoRegister(Enum):
+    """位置信息寄存器枚举类，定义机器人位置相关的寄存器地址"""
+    jointPosition1 = 43000      # 关节1 角度
+    jointPosition2 = 43002      # 关节2 角度
+    jointPosition3 = 43004      # 关节3 角度
+    jointPosition4 = 43006      # 关节4 角度
+    jointPosition5 = 43008      # 关节5 角度
+    jointPosition6 = 43010      # 关节6 角度
+    jointVelocity1 = 43100
+    jointVelocity2 = 43102
+    jointVelocity3 = 43104
+    jointVelocity4 = 43106
+    jointVelocity5 = 43108
+    jointVelocity6 = 43110
+    endPositionX = 43200
+    endPositionY = 43202
+    endPositionZ = 43204
+    endPositionA = 43206
+    endPositionB = 43208
+    endPositionC = 43210
+    endVelocityX = 43300
+    endVelocityY = 43302
+    endVelocityZ = 43304
+    endVelocityA = 43306
+    endVelocityB = 43308
+    endVelocityC = 43310
+
+class IORegister(Enum):
+    readDIStartPort0 = 44000
+    readDIStartPort1 = 44001
+    readDIStartPort2 = 44002
+    readDIStartPort3 = 44003
+    readDIValue0 = 44100
+    readDIValue1 = 44101
+    readDIValue2 = 44102
+    readDIValue3 = 44103
+
+
 
 
 class Typecode:
