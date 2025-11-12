@@ -2,6 +2,11 @@ from enum import Enum
 from symtable import Class
 from typing import  Dict, Any
 
+class JogMode(Enum):
+    """JOG模式枚举类，定义机器人的JOG操作模式"""
+    Joint = 1        # 关节模式
+    Current = 2      # 直线模式
+
 class MoveType(Enum):
     """移动类型枚举类，定义机器人的各种移动方式"""
     Home = 0        # Home位

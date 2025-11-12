@@ -1,18 +1,18 @@
 import socket
 import json
+from typing import Optional
 
 class TCPClient:
-    def __init__(self):
+    def __init__(self,ip: str, port: int, timeout: float = 1.0):
         """初始化TCP客户端"""
-        self.host = None
-        self.port = None
-        self.socket = None
-        self.connected = False
-
-    def connect(self, host, port):
-        """连接到服务器"""
-        self.host = host
+        self.host = ip
         self.port = port
+        self.socket: Optional[socket.socket] = None
+        self.connected = False
+        self.timeout = timeout
+
+    def connect(self):
+        """连接到服务器"""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((self.host, self.port))

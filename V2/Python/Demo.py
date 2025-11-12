@@ -1,3 +1,5 @@
+from typing import Any
+
 from Codroid import Codroid
 import threading
 import time
@@ -13,6 +15,26 @@ cod.Connect()
 time.sleep(1)
 cod.DEBUG = True
 
+# 上使能
+if 0:
+    cod.SwitchOn()
+    time.sleep(2)
+# 下使能
+if 0:
+    cod.SwitchOff()
+    time.sleep(2)
+# 切换手动模式
+if 0:
+    cod.ToManual()
+    time.sleep(2)
+# 切换自动模式
+if 0:
+    cod.ToAuto()
+    time.sleep(2)
+# 切换远程模式
+if 0:
+    cod.ToRemote()
+    time.sleep(2)
 # 2.2.1.1 运行脚本
 if 0:
     cod.RunScript(mainProgram="a = a+b \nprint(a)", vars={"a":10,"b":20})
@@ -24,6 +46,11 @@ if 0:
 #2.2.1.3 运行工程
 if 0:
     cod.RunProject(test_project_ID)
+
+#2.2.1.3 通过工程映射索引号运行工程
+if 0:
+    cod.RunProjectByIndex(1)
+
 
 # 2.2.1.4 单步运行
 if 0:
@@ -106,7 +133,7 @@ if 0:
 
 # 2.2.4.1 485初始化(485功能暂不可用)
 if 0:
-    cod.RS485Init(9600)
+    cod.RS485Init(115200)
     # 2.2.4.4 485发送数据(485功能暂不可用)
     time.sleep(0.5)
     cod.RS485Write([1,2,3,4,5])
@@ -116,6 +143,7 @@ if 0:
 # 2.2.4.3 485读取数据(485功能暂不可用)
 if 0:
     cod.RS485Read(1,10000)
+    time.sleep(5)
 
 # 2.2.5.1 ModbusTcp创建设备连接
 if 0:
@@ -174,14 +202,26 @@ if 0:
     res:list = cod.GetModbusTcpValue("dd","b")
     print( res)
 
+# 正解
+if 0:
+    apos = [-88.342,14.56,121.328,42.713,86.059,-109.757]
+    res = cod.Apos2Cpos(apos)
+
 # 2.2.9.1 逆解(需要连接本体实体)
 if 0:
-    cpos1 = [927.496,214.506,598.994,180,0,-89.999]
-    res1 = cod.IK(cpos1)
-    res2 = cod.Cpos2Apos_mm_deg(cpos1)
-    cod.PrintResponse(res1)
-    cod.PrintResponse(res2)
+    cpos1 = [214.549,151.96,190.881,142.078,23.034,-92.559]
+    res2 = cod.Cpos2Apos(cpos1)
     # cod.Cpos2Apos_m_rad()
+
+# 点动
+if 0:
+    cod.Jog(2, -0.3,1,0,1)
+    i = 1
+    while i < 10:
+        cod.MoveToHeartbeatOnce()
+        time.sleep(0.4)
+        i += 1
+
 
 # 2.2.10.1 MoveTo
 if 0:
@@ -192,23 +232,41 @@ if 0:
         time.sleep(0.4)
         i+=1
 
-# 2.2.11.2 设置 IO 值(无效)
+# 2.2.10.3 MovJ
 if 0:
-    cod.SetIOValue(
-        [{"type":"DO", "port":0, "value":1}]
-    )
+    target_apos = [0,0,90,0,90,0]
+    cod.MovJ(target_apos)
 
+if 0:
+    target_cpos = [326.803,110.496,261.504,-179.999,0,-90]
+    cod.MovL(target_cpos)
+
+if 0:
+    cod.MovHome()
+
+if 0:
+    cod.MovCandle()
+
+# jog 点动 (无效)
+if 0:
+    cod.Jog(JogMode.Joint,0.3,5,0,1)
+    cod.JogHeartbeat()
+    i = 1
+    while i<10:
+        cod.JogHeartbeat()
+        time.sleep(0.3)
+        i+=1
+
+# 2.2.11.2 设置 IO 值
 # 2.2.11.1 获取 IO 值
 if 0:
-    cod.GetIOValue(
-        [{"type":"DI", "port":0},
-        {"type":"DO", "port":0}]
-    )
-    print(cod.GetDI(0))
-    print(cod.GetDI(15))
+    cod.SetIOValue({"type":"DO", "port":0, "value":0})
     print(cod.GetDO(0))
-    print(cod.GetDO(16))
-    print(cod.GetAI(0))
+    cod.SetIOValue({"type":"DO", "port":0, "value":1})
+    print(cod.GetDO(0))
+    cod.SetIOValue({"type":"AO", "port":0, "value":0})
+    print(cod.GetAO(0))
+    cod.SetIOValue({"type":"AO", "port":0, "value":3.5})
     print(cod.GetAO(0))
 
 # 2.2.12.1 获取寄存器值
@@ -247,13 +305,10 @@ if 0:
 if 0:
     cod.GetRealVariableRegister(49200)
 
-# 2.2.12.2 设置寄存器值(无效)
+# 2.2.12.2 设置寄存器值
 if 0:
     cod.SetRegisterValue(
-        [
-            {"address":49102, "value":123},
-            {"address":49330, "value":12.345}
-        ]
+        {"address":49330, "value":12.345}
     )
 
 if 0:
@@ -297,15 +352,12 @@ if 0:
         while True:
             res = cod.GetRobotStates()
             cod.PrintSub(res)
-            res2 = cod.GetRobotPosture()
-            cod.PrintSub(res2)
+            # res2 = cod.GetRobotPosture()
+            # cod.PrintSub(res2)
             time.sleep(0.5)
 
     t = threading.Thread(target=robot_state_thread, daemon=True)
     t.start()
-
-    cod.RunProject(test_project_ID)
-
     t.join( )
 
 
@@ -326,6 +378,5 @@ if 0:
     cod.RunScript(mainProgram="wait(2)\na = a+b \nprint(a)\nwait(2)", vars={"a": 10, "b": 20})
     time.sleep(2)
 
-# 2.4.7 警告信息
 
 cod.Disconnect()

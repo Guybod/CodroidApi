@@ -1,7 +1,7 @@
 # 导入所需的标准库和自定义模块
 import json, math, time, TcpClient
 from json import JSONDecodeError, JSONDecoder
-from typing import Union
+from typing import Union, Any
 from Define import *
 
 class Codroid:
@@ -9,7 +9,6 @@ class Codroid:
     Codroid机器人控制类
     提供与Codroid机器人通信和控制的接口
     """
-
     reserved_words = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
                       "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", "table",
                       "math",
@@ -382,6 +381,26 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
 
+    # 2.4 通过工程映射启动程序
+    def RunProjectByIndex(self, index:int ) -> json:
+        """
+        运行指定项目
+
+        参数:
+            project_id (str): 项目ID
+
+        返回值:
+            json: 运行命令的响应结果
+        """
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "project/runByIndex",
+            "db": index
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
     # 2.2.1.4 单步运行
     def RunStep(self, project_id: str) -> json:
         """
@@ -625,13 +644,13 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
-    def __SetGlobalVars(self, value: list) -> json:
+    def SetGlobalVars(self, value: list) -> json:
         """
         批量设置全局变量
 
         参数:
             value: 变量名和值的列表，每个元素是包含name和value的字典
-
+            {变量名1": {"nm": "变量备注1", "val": "变量值1"},变量名2": {"nm": "变量备注2", "val": "变量值2"}}
         返回值:
             json: 批量设置命令的响应结果
         """
@@ -652,7 +671,7 @@ class Codroid:
 
         参数:
             value_name: 要删除的变量名列表
-
+            ["变量名 1", "变量名 2"]
         返回值:
             json: 删除命令的响应结果
         """
@@ -1652,8 +1671,41 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return float(self._safe_parse_response(response)["db"])
 
-    # 2.2.9.1 逆解
-    def Cpos2Apos_mm_deg(self, cpos: list[float], reference_joint=None):
+    # 2.2.9.0 正解
+    def Apos2Cpos(self, apos: list[float], coor: list[float] = None, tool: list[float] = None):
+        """
+        将关节坐标转换为笛卡尔坐标（毫米/度单位）
+
+        参数:
+            apos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
+            coor (list[float]): 用户坐标系 [x, y, z, rx, ry, rz]
+            tool (list[float]): 工具坐标系 [x, y, z, rx, ry, rz]
+
+        返回值:
+            json: 坐标转换命令的响应结果
+        """
+        if len(apos) != 6:
+            raise ValueError("cpos参数长度必须为6")
+        if coor is None:
+            coor = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        if tool is None:
+            tool = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        message_dict = {
+            "id": "m912rb1b0wsc2742",
+            "ty": "Robot/apostocpos",
+            "db": {
+                "jp": apos,
+                "coor": coor,
+                "tool": tool,
+                "ep": []
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.9.0 逆解
+    def Cpos2Apos(self, cpos: list[float], reference_joint=None):
         """
         将笛卡尔坐标转换为关节坐标（毫米/度单位）
 
@@ -1689,89 +1741,78 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
 
-    # 2.2.9.1 逆解
-    def IK(self, cpos: list[float], reference_joint=None):
+    # 2.2.10.0 点动
+    def Jog(self, mode: JogMode, speed: float, index: int, coorType: int,coorid: int):
         """
-        将笛卡尔坐标转换为关节坐标（毫米/度单位）
-
+        控制机器人点动移动
+        需要每 500ms 调用点动心跳接口维持点动 JogHeartbeat
         参数:
-            cpos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
-            reference_joint: 参考关节坐标
+            mode (JogMode): 枚举类型，
+            speed (float): 点动速度
+            index (int): 轴序号，如果是关节点动，范围1-6分别对应joint1-6；如果是笛卡尔点动，范围1-6分别对应X、Y、Z、RX、RY、RZ
+            coorType (int):
+            coorid (int):
 
         返回值:
-            json: 坐标转换命令的响应结果
+            json: 点动命令的响应结果
         """
-        if len(cpos) != 6:
-            raise ValueError("cpos参数长度必须为6")
-        if reference_joint is None:
-            reference_joint = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        if len(reference_joint) != 6:
-            raise ValueError("reference_joint参数长度必须为6")
-        else:
-            reference_joint = [math.radians(reference_joint[0]), math.radians(reference_joint[1]),
-                               math.radians(reference_joint[2]), math.radians(reference_joint[3]),
-                               math.radians(reference_joint[4]), math.radians(reference_joint[5])]
 
         message_dict = {
-            "id": "m912rb1b0wsc2742",
-            "ty": "Robot/cpostoapos",
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/jog",
             "db": {
-                "cp": [cpos[0], cpos[1], cpos[2], cpos[3], cpos[4], cpos[5]],
-                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3],
-                       reference_joint[4], reference_joint[5]],
-                "ep": []
+                "mode": mode.value,
+                "speed": speed,
+                "index": index,
+                "coorType": coorType,
+                "coorId": coorid,
+                }
             }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.10.0 点动
+    def StopJog(self):
+        """
+        控制机器人停止点动移动
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/stopJog",
+            "db": ""
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
 
-    # 2.2.9.1 逆解
-    def Cpos2Apos_m_rad(self, cpos: list[float], reference_joint=None):
+    # 2.2.10.0 点动心跳
+    def JogHeartbeat(self):
         """
-        将笛卡尔坐标转换为关节坐标（米/弧度单位）
+        控制机器人点动心跳
 
         参数:
-            cpos (list[float]): 笛卡尔坐标 [x, y, z, rx, ry, rz]
-            reference_joint: 参考关节坐标
-
         返回值:
-            json: 坐标转换命令的响应结果
+            json: 响应结果
         """
-        if len(cpos) != 6:
-            raise ValueError("cpos参数长度必须为6")
-        if reference_joint is None:
-            reference_joint = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        if len(reference_joint) != 6:
-            raise ValueError("reference_joint参数长度必须为6")
-        else:
-            reference_joint = [math.radians(reference_joint[0]), math.radians(reference_joint[1]),
-                               math.radians(reference_joint[2]), math.radians(reference_joint[3]),
-                               math.radians(reference_joint[4]), math.radians(reference_joint[5])]
-
-        local1: float = cpos[0] * 1000
-        local2: float = cpos[1] * 1000
-        local3: float = cpos[2] * 1000
-        local4: float = math.radians(cpos[3])
-        local5: float = math.radians(cpos[4])
-        local6: float = math.radians(cpos[5])
 
         message_dict = {
-            "id": "m912rb1b0wsc2742",
-            "ty": "Robot/cpostoapos",
-            "db": {
-                "cp": [local1, local2, local3, local4, local5, local6],
-                "rj": [reference_joint[0], reference_joint[1], reference_joint[2], reference_joint[3],
-                       reference_joint[4], reference_joint[5]],
-                "ep": []
-            }
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/jogHeartbeat",
+            "db": ""
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
+
 
     # 2.2.10.1 MoveTo
-    def MoveTo(self, movType:MoveType, cpos:list[float] = None, apos:list[float] = None):
+    def __MoveTo(self, movType:MoveType, cpos:list[float] = None, apos:list[float] = None):
         """
         控制机器人移动到指定位置
         
@@ -1829,7 +1870,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.10.2 MoveTo心跳
-    def MoveToHeartbeatOnce(self):
+    def __MoveToHeartbeatOnce(self):
         """
         发送一次移动心跳信号,配合MoveTo使用，需要在MoveTo调用后每0.5s调用一次
 
@@ -1848,7 +1889,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.10.2 MoveTo心跳
-    def MoveToHeartbeatAlways(self, _time: float = 0.5):
+    def __MoveToHeartbeatAlways(self, _time: float = 0.5):
         """
         循环发送心跳信号，配合MoveTo使用，需要在MoveTo调用后
         
@@ -1871,6 +1912,233 @@ class Codroid:
             except Exception as e:
                 print(f"心跳发送失败: {e}")
             time.sleep(_time)  # 每0.5秒发送一次
+
+    def MovJ(self, apos: list[float]):
+        """
+        控制机器人关节运动到指定位置
+        阻塞式函数，直到运动完成才返回
+        参数:
+            apos(list[float]):关节角度Float类型的列表，单位为度
+
+        返回值:
+        """
+        self.__MoveTo(MoveType.MovJ, apos=apos)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovL(self, cpos: list[float]):
+        """
+        控制机器人直线运动到指定位置
+
+        参数:
+            cpos(list[float]):笛卡尔坐标Float类型的列表，单位为度
+
+        返回值:
+        """
+        self.__MoveTo(MoveType.MovL, cpos=cpos)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovHome(self):
+        """
+        控制机器人回到Home位置
+
+        参数:
+        返回值:
+        """
+        self.__MoveTo(MoveType.Home)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovCandle(self):
+        """
+        控制机器人回到Candle位置
+
+        参数:
+        返回值:
+        """
+        self.__MoveTo(MoveType.Candle)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovFaulty(self):
+        """
+        控制机器人回到Faulty位置
+
+        参数:
+        返回值:
+        """
+        self.__MoveTo(MoveType.Faulty)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovPackage(self):
+        """
+        控制机器人回到Package位置
+
+        参数:
+        返回值:
+        """
+        self.__MoveTo(MoveType.Package)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    def MovSafety(self):
+        """
+        控制机器人回到Safety位置
+
+        参数:
+        返回值:
+        """
+        self.__MoveTo(MoveType.Safety)
+        self.__MoveToHeartbeatOnce()
+        signal = True
+        while signal:
+            res = self.GetRobotStates()
+            if res["db"]["state"] == 4:
+                self.__MoveToHeartbeatOnce()
+            else:
+                signal = False
+        return
+
+    # 2.2.10.3 上使能
+    def SwitchOn(self):
+        """
+        控制机器人上使能
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/switchOn",
+            "db": ""
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.10.3 下使能
+    def SwitchOff(self):
+        """
+        控制机器人下使能
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/switchOff",
+            "db": ""
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.10.3 手动模式
+    def ToManual(self):
+        """
+        控制机器人切换到手动模式
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/toManual",
+            "db": ""
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.10.3 自动模式
+    def ToAuto(self):
+        """
+        控制机器人切换到手动模式
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/toAuto",
+            "db": ""
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    # 2.2.10.3 自动模式
+    def ToRemote(self):
+        """
+        控制机器人切换到远程模式
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "Robot/toRemote",
+            "db": ""
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+
 
     # 2.2.11.1获取IO值
     def GetIOValue(self, data: list[dict]):
@@ -2006,7 +2274,7 @@ class Codroid:
             return -1
 
     #  2.2.11.2 写入IO值
-    def SetIOValue(self, data: list[dict]):
+    def SetIOValue(self, data: dict):
         """
         写入IO值
 
@@ -2019,7 +2287,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "IOManager/SetIOValues",
+            "ty": "IOManager/SetIOValue",
             "db": data
         }
         message_str = json.dumps(message_dict)
@@ -2041,7 +2309,7 @@ class Codroid:
             raise ValueError("值必须为0或1")
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "IOManager/SetIOValues",
+            "ty": "IOManager/SetIOValue",
             "db": [
                 {"type": "DO", "port": port, "value": value}
             ]
@@ -2063,7 +2331,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "IOManager/SetIOValues",
+            "ty": "IOManager/SetIOValue",
             "db": [{
                 "type": "AO", "port": port, "value": value
             }]
@@ -2311,7 +2579,7 @@ class Codroid:
             return -1
 
     # 2.2.12.2 写入寄存器值
-    def SetRegisterValue(self,addrlist:list[dict]):
+    def SetRegisterValue(self,addrlist:dict):
         """
         获取寄存器值
 
@@ -2323,9 +2591,9 @@ class Codroid:
             json: 寄存器的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValues",
-            "db": addrlist
+            "id":"m912rb1b0wsc2742",
+            "ty":"RegisterManager/SetRegisterValue",
+            "db":addrlist
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
@@ -2344,10 +2612,8 @@ class Codroid:
         if name in ControlRegister:
             message_dict = {
                 "id": "m912rb1b0wsc2742",
-                "ty": "RegisterManager/SetRegisterValues",
-                "db": [
-                    {"address": name, "value": value}
-                ]
+                "ty": "RegisterManager/SetRegisterValue",
+                "db":{"address": name, "value": value}
             }
             message_str = json.dumps(message_dict)
             response = self.client.send(message_str, self.DEBUG)
@@ -2366,10 +2632,8 @@ class Codroid:
         if name in {IORegister.readDIStartPort0,IORegister.readDIStartPort1,IORegister.readDIStartPort2,IORegister.readDIStartPort3}:
             message_dict = {
                 "id": "m912rb1b0wsc2742",
-                "ty": "RegisterManager/SetRegisterValues",
-                "db": [
-                        {"address": name, "value": value}
-                ]
+                "ty": "RegisterManager/SetRegisterValue",
+                "db": {"address": name, "value": value}
             }
             message_str = json.dumps(message_dict)
             response = self.client.send(message_str, self.DEBUG)
@@ -2392,10 +2656,8 @@ class Codroid:
             raise ValueError("值必须为0或1")
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValues",
-            "db": [
-                {"address": address, "value": value}
-            ]
+            "ty": "RegisterManager/SetRegisterValue",
+            "db":{"address": address, "value": value}
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
@@ -2416,10 +2678,9 @@ class Codroid:
             raise ValueError("无效的寄存器名称")
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValues",
-            "db": [
+            "ty": "RegisterManager/SetRegisterValue",
+            "db":
                 {"address": address, "value": value}
-            ]
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
@@ -2440,10 +2701,9 @@ class Codroid:
             raise ValueError("无效的寄存器名称")
         message_dict = {
             "id": "m912rb1b0wsc2742",
-            "ty": "RegisterManager/SetRegisterValues",
-            "db": [
+            "ty": "RegisterManager/SetRegisterValue",
+            "db":
                 {"address": address, "value": value}
-            ]
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
