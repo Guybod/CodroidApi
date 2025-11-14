@@ -8,7 +8,7 @@ from Define import *
 # 车间
 # test_project_ID = "mha5llws0pre1ca6"
 # 8楼
-test_project_ID = "mh4iixxj0pr135b8"
+test_project_ID = "mhv9ubqz0pr69d5f"
 
 cod = Codroid("192.168.1.136",9001)
 cod.Connect()
@@ -88,23 +88,14 @@ if 0:
 # 2.2.1.10 删除断点
 # 2.2.1.11 清除所有断点
 if 0:
-    cod.SetBreakpoint(test_project_ID, [5])
-    cod.AddBreakpoint(test_project_ID, [6])
-    cod.RemoveBreakpoint(test_project_ID,[5])
-    cod.ClearBreakpoint()
+    cod.SetBreakpoint(test_project_ID, [2,3])
+    cod.RunProject(test_project_ID)
 
 # 2.2.1.12 设置启动行
 if 0:
     cod.StopProject()
-    cod.SetStartLine(5)
+    cod.SetStartLine(3)
     cod.RunProject(test_project_ID)
-    time.sleep(2)
-    cod.StopProject()
-    time.sleep(2)
-    cod.ClearStartLine()
-    cod.RunProject(test_project_ID)
-    time.sleep(2)
-    cod.StopProject()
 
 # 2.2.2.3 获取全局变量
 if 0:
@@ -123,27 +114,26 @@ if 0:
 
 # 2.2.2.5 删除全局变量
 if 0:
-    cod.RemoveGlobalVars(["v99"])
+    cod.RemoveGlobalVars(["v995"])
 
-# 2.2.3.1 获取当前所有工程变量值
+# 2.2.3.1 获取当前所有工程变量值(必须程序运行状态才有效)
 if 0:
     cod.RunProject(test_project_ID)
     time.sleep(2)
     cod.GetProjectVars()
 
-# 2.2.4.1 485初始化(485功能暂不可用)
+# 2.2.4.1 485初始化
 if 0:
     cod.RS485Init(115200)
-    # 2.2.4.4 485发送数据(485功能暂不可用)
+    # 2.2.4.4 485发送数据
     time.sleep(0.5)
     cod.RS485Write([1,2,3,4,5])
-# 2.2.4.2 485清空缓存(485功能暂不可用)
+# 2.2.4.2 485清空缓存
 if 0:
     cod.RS485FlushReadBuffer()
-# 2.2.4.3 485读取数据(485功能暂不可用)
+# 2.2.4.3 485读取数据
 if 0:
-    cod.RS485Read(1,10000)
-    time.sleep(5)
+    print(cod.RS485Read(3,3000))
 
 # 2.2.5.1 ModbusTcp创建设备连接
 if 0:
@@ -158,7 +148,7 @@ if 0:
 
 # 2.2.5.2 ModbusTcp删除连接设备
 if 0:
-    cod.RemoveModbusTcpDevice("ad")
+    cod.RemoveModbusTcpDevice("cd")
 
 # 2.2.5.3创建/修改通信表
 if 0:
@@ -204,21 +194,20 @@ if 0:
 
 # 正解
 if 0:
-    apos = [-88.342,14.56,121.328,42.713,86.059,-109.757]
+    apos = [0,0,90,0,90,0]
     res = cod.Apos2Cpos(apos)
 
 # 2.2.9.1 逆解(需要连接本体实体)
 if 0:
-    cpos1 = [214.549,151.96,190.881,142.078,23.034,-92.559]
+    cpos1 = [494.0,190.99999999999997,424.5,180.0,-0.0,-90.0]
     res2 = cod.Cpos2Apos(cpos1)
-    # cod.Cpos2Apos_m_rad()
 
-# 点动
+# 点动(无效)
 if 0:
-    cod.Jog(2, -0.3,1,0,1)
+    cod.Jog(JogMode.Joint, -0.3,1,0)
     i = 1
     while i < 10:
-        cod.MoveToHeartbeatOnce()
+        cod.JogHeartbeat()
         time.sleep(0.4)
         i += 1
 
@@ -234,7 +223,7 @@ if 0:
 
 # 2.2.10.3 MovJ
 if 0:
-    target_apos = [0,0,90,0,90,0]
+    target_apos = [10,20,30,40,50,60]
     cod.MovJ(target_apos)
 
 if 0:
@@ -246,16 +235,6 @@ if 0:
 
 if 0:
     cod.MovCandle()
-
-# jog 点动 (无效)
-if 0:
-    cod.Jog(JogMode.Joint,0.3,5,0,1)
-    cod.JogHeartbeat()
-    i = 1
-    while i<10:
-        cod.JogHeartbeat()
-        time.sleep(0.3)
-        i+=1
 
 # 2.2.11.2 设置 IO 值
 # 2.2.11.1 获取 IO 值

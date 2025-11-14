@@ -1,8 +1,9 @@
 # 导入所需的标准库和自定义模块
-import json, math, time, TcpClient
+import json, math, time
+from .TcpClient import TCPClient
 from json import JSONDecodeError, JSONDecoder
-from typing import Union, Any
-from Define import *
+from typing import Union
+from .Define import *
 
 class Codroid:
     """
@@ -49,7 +50,7 @@ class Codroid:
         self.heartbeat_thread = None
         self.ip = ip
         self.port = port
-        self.client = TcpClient.TCPClient(ip,port)
+        self.client = TCPClient(ip,port)
         self.DEBUG = False
         self.isConnected = False
         self.default_timeout = 5.0 # 默认超时时间（秒）
@@ -495,7 +496,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.9 添加断点
-    def AddBreakpoint(self, project_id: str, line_number: list):
+    def AddBreakpoint(self, project_id: str, line_number: list[int]):
         """
         添加断点
 
@@ -766,7 +767,7 @@ class Codroid:
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str)
-        return self._safe_parse_response(response)
+        return json.loads(response)
 
     # 2.2.4.4 485发送数据
     def RS485Write(self, data: list[int] ):
@@ -1719,7 +1720,7 @@ class Codroid:
         if len(cpos) != 6:
             raise ValueError("cpos参数长度必须为6")
         if reference_joint is None:
-            reference_joint = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            reference_joint = [20,20,20,20,20,20]
         if len(reference_joint) != 6:
             raise ValueError("reference_joint参数长度必须为6")
         else:
@@ -1742,7 +1743,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.10.0 点动
-    def Jog(self, mode: JogMode, speed: float, index: int, coorType: int,coorid: int):
+    def Jog(self, mode: JogMode, speed: float, index: int,coorid: int):
         """
         控制机器人点动移动
         需要每 500ms 调用点动心跳接口维持点动 JogHeartbeat
@@ -1764,7 +1765,6 @@ class Codroid:
                 "mode": mode.value,
                 "speed": speed,
                 "index": index,
-                "coorType": coorType,
                 "coorId": coorid,
                 }
             }
@@ -1908,7 +1908,7 @@ class Codroid:
                     "ty": "Robot/moveToHeartbeat"
                 }
                 message_str = json.dumps(message_dict)
-                response = self.client.send(message_str, self.DEBUG)
+                self.client.send(message_str, self.DEBUG)
             except Exception as e:
                 print(f"心跳发送失败: {e}")
             time.sleep(_time)  # 每0.5秒发送一次
@@ -2843,6 +2843,93 @@ class Codroid:
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
 
+    def CRIStartDataPush(self,ip: str, port: int, duration: int):
+        """
+        开始CRI数据推送
 
+        参数:
+            ip (str): 推送目标地址
+            port (int): 推送目标端口，合法范围为1000-65534
+            duration (int): 数据推送间隔, 单位: ms, 范围 >=1整数
+        返回值:
+            json: 响应结果
+        """
+        if port < 1000 or port > 65534:
+            raise ValueError("端口号必须在1000-65534之间")
+        if duration < 1:
+            raise ValueError("duration必须大于等于1")
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "CRI/criStartDataPush",
+            "db": {
+                "ip": ip,
+                "port": port,
+                "duration": duration
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
 
+    def CRIStopDataPush(self):
+        """
+        关闭CRI数据推送
 
+        参数:
+        返回值:
+            json: 响应结果
+        """
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "CRI/criStopDataPush"
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    def CRIStartControl(self,filterType:int,duration:int,startBuffer:int):
+        """
+        关闭CRI数据推送
+
+        参数:
+            filterType (int): 滤波类型 0 - 关闭滤波 1 - 平均滤波值 2 - 二阶低通滤波 3 - 椭圆滤波
+            duration (int): 指令间隔, 单位: ms, 范围:
+            startBuffer (int): 启动缓冲点数量, 范围: [1 - 100] 整数, 当接受到至少该数量的点位时, 机器人才会开始运动
+        返回值:
+            json: 响应结果
+        """
+        if filterType < 0 or filterType > 3:
+            raise ValueError("filterType必须在0-3之间")
+        if duration < 1:
+            raise ValueError("duration必须大于等于1")
+        if startBuffer < 1 or startBuffer > 100:
+            raise ValueError("startBuffer必须在1-100之间")
+
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "CRI/StartControl",
+            "db": {
+                "filterType": filterType,
+                "duration": duration,
+                "startBuffer": startBuffer
+            }
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)
+
+    def CRIStopControl(self):
+        """
+        关闭CRI数据推送
+
+        参数:
+        返回值:
+            json: 响应结果
+        """
+        message_dict = {
+            "id": "m8y21rn20ws8a974",
+            "ty": "CRI/StopControl"
+        }
+        message_str = json.dumps(message_dict)
+        response = self.client.send(message_str, self.DEBUG)
+        return self._safe_parse_response(response)

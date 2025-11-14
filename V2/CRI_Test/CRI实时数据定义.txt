@@ -1,0 +1,17 @@
+// 机器人状态数据流
+// 开始数据推送后, 将向指定地址以二进制的形式, 推送以下数据:
+struct PushData {
+    Bool isControlling{0};
+    UInt8 errorCode{0};
+    UInt8 nc[6]{0};
+    Float64 jointPosition[6]{0};
+    Float64 endPosition[6]{0};
+}
+
+// 机器人指令数据流
+struct CommandData {
+    Int64 timestamp{0}; // 目前版本未使用
+    Float64 position[6]{0}; // 关节或末端位置
+    UInt8 type{0}; // 0: 关节, 1: 末端
+    UInt8 nc[7]{0}; // 保留字节
+};

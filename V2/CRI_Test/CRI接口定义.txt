@@ -1,0 +1,51 @@
+// 开启数据推送
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StartDataPush",
+    "db": {
+      // 
+      "ip": "xxx.xxx.xxx.xxx", // 填写推送目标地址
+      "port": 9876, // 填写推送目标端口，合法范围为1000-65534
+      "duration": 1 // 数据推送间隔, 单位: ms, 范围: >=1整数
+    }
+}
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StartDataPush",
+    "err": "xxxxxxx" // 仅出错时存在此字段, 将提示错误信息
+}
+
+// 停止数据推送
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StopDataPush",
+}
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StopDataPush",
+}
+
+// 开启控制
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StartControl",
+    "db": {
+      "filterType": 0, // 0-关闭滤波 1-平均滤波值 2-二阶低通滤波 3-椭圆滤波
+      "duration": 1, // 指令间隔, 单位: ms, 范围: [1, 16]整数
+      "startBuffer": 3 // 启动缓冲点数量, 范围: [1-100]整数, 当接受到至少该数量的点位时, 机器人才会开始运动
+    }
+}
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StartControl",
+    "err": "xxxxxxx" // 仅出错时存在此字段, 将提示错误信息
+}
+// 停止控制
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StopControl"
+}
+{
+    "id": "m912rb1b0wsc2742",
+    "ty": "CRI/StopControl"
+}
