@@ -1,3 +1,21 @@
 Demo222.py
 /.idea
 *.xml
+# Rider IDE
+.idea/
+# 编译输出
+[Bb]in/
+[Oo]bj/
+# NuGet 包
+packages/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+# 其他
+.vs/
+*.user
+*.suo
+*.userosscache

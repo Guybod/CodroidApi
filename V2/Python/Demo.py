@@ -89,6 +89,7 @@ if 0:
 # 2.2.1.11 清除所有断点
 if 0:
     cod.SetBreakpoint(test_project_ID, [2,3])
+    cod.AddBreakpoint(test_project_ID, [4])
     cod.RunProject(test_project_ID)
 
 # 2.2.1.12 设置启动行
@@ -102,13 +103,13 @@ if 0:
     cod.GetGlobalVars()
 
 # 2.2.2.4 保存全局变量(目前不支持bool变量直接发送)
-if 0:
-    cod.SetGlobalVar("Test_str", "100000","这是一个字符串")
+if 1:
+    # cod.SetGlobalVar("Test_str", "100000","这是一个字符串")
     # 注意变量名规范，不能以数字开头，不能有特殊字符，不能有空格
     # cod.SetGlobalVar("111Test_str", "100000","这是一个字符串")
-    cod.SetGlobalVar("v991", 100)
-    cod.SetGlobalVar("v992", 90.4)
-    cod.SetGlobalVar("v993", [1,2,3,4,5])
+    # cod.SetGlobalVar("v991", 100)
+    # cod.SetGlobalVar("v992", 90.4)
+    # cod.SetGlobalVar("v993", [1,2,3,4,5])
     cod.SetGlobalVar("v994", {"aaa":100})
     # cod.SetGlobalVar("v995", true," ")
 

@@ -1,15 +1,16 @@
 # 导入所需的标准库和自定义模块
 import json, math, time
-from .TcpClient import TCPClient
+from TcpClient import TCPClient
 from json import JSONDecodeError, JSONDecoder
 from typing import Union
-from .Define import *
+from Define import *
 
 class Codroid:
     """
     Codroid机器人控制类
     提供与Codroid机器人通信和控制的接口
     """
+    # 保留字
     reserved_words = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
                       "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", "table",
                       "math",
@@ -288,7 +289,7 @@ class Codroid:
     # 2.2.1.1 运行脚本
     def RunScript(self, mainProgram: str, subThreadsName: str = None, subThreads: str = None,
                   subProgramsName: str = None, subPrograms: str = None, interruptsName: str = None, 
-                  interrupts: str = None, vars: dict = None) -> json:
+                  interrupts: str = None, vars: dict = None, id :int = 1) -> json:
         """
         运行脚本函数
         
@@ -301,6 +302,7 @@ class Codroid:
             interruptsName (str, optional): 中断处理程序名称
             interrupts (str, optional): 中断处理程序代码
             vars (dict, optional): 脚本运行时变量字典
+            id (int, optional): 请求ID，默认为1
             
         返回值:
             json: 脚本执行结果的JSON响应
@@ -312,7 +314,7 @@ class Codroid:
         
         # 构建消息字典，包含脚本信息和变量
         message_dict = {
-            "id": "m8y21rn20ws8a974",
+            "id": id,
             "ty": "project/runScript",
             "db": {
                 "scripts": {
@@ -345,34 +347,36 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.2 进入远程脚本模式
-    def EnterRemoteScriptMode(self) -> json:
+    def EnterRemoteScriptMode(self, id :int = 1) -> json:
         """
         进入远程脚本模式
-
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 模式切换命令的响应结果
         """
         message_dict = {
-            "ty": "project/enterRemoteScriptMode",
-            "id": "mdo8zdy30wscc06e"
+            "id": id,
+            "ty": "project/enterRemoteScriptMode"
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
         return self._safe_parse_response(response)
 
     # 2.2.1.3 运行工程
-    def RunProject(self, project_id: str) -> json:
+    def RunProject(self, project_id: str, id :int = 1) -> json:
         """
         运行指定项目
 
         参数:
+            id (int, optional): 请求ID，默认为1
             project_id (str): 项目ID
 
         返回值:
             json: 运行命令的响应结果
         """
         message_dict = {
-            "id": "m8y21rn20ws8a974",
+            "id": id,
             "ty": "project/run",
             "db": {
                 "id": project_id
@@ -383,18 +387,19 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.4 通过工程映射启动程序
-    def RunProjectByIndex(self, index:int ) -> json:
+    def RunProjectByIndex(self, index:int ,id :int = 1) -> json:
         """
         运行指定项目
 
         参数:
-            project_id (str): 项目ID
+            id (int, optional): 请求ID，默认为1
+            index (int): 索引号
 
         返回值:
             json: 运行命令的响应结果
         """
         message_dict = {
-            "id": "m8y21rn20ws8a974",
+            "id": id,
             "ty": "project/runByIndex",
             "db": index
         }
@@ -403,18 +408,19 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.4 单步运行
-    def RunStep(self, project_id: str) -> json:
+    def RunStep(self, project_id: str ,id :int = 1) -> json:
         """
         单步运行指定项目
 
         参数:
+            id (int, optional): 请求ID，默认为1
             project_id (str): 项目ID
 
         返回值:
             json: 单步运行命令的响应结果
         """
         message_dict = {
-            "id": "m8y21rn20ws8a974",
+            "id": id,
             "ty": "project/runStep",
             "db": {
                 "id": project_id
@@ -425,15 +431,16 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.5 暂停工程
-    def PauseProject(self) -> json:
+    def PauseProject(self, id :int = 1) -> json:
         """
         暂停项目执行
-
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 暂停命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/pause"
         }
         message_str = json.dumps(message_dict)
@@ -441,15 +448,16 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.6 恢复运行工程
-    def ResumeProject(self) -> json:
+    def ResumeProject(self, id :int = 1) -> json:
         """
         恢复项目执行
-
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 恢复命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/resume"
         }
         message_str = json.dumps(message_dict)
@@ -457,15 +465,16 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.7 停止运行工程
-    def StopProject(self) -> json:
+    def StopProject(self, id :int = 1) -> json:
         """
         停止项目执行
-
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 停止命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/stop"
         }
         message_str = json.dumps(message_dict)
@@ -473,11 +482,12 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.8 设置断点
-    def SetBreakpoint(self, project_id: str, line_number: list):
+    def SetBreakpoint(self, project_id: str, line_number: list, id :int = 1):
         """
         设置断点
 
         参数:
+            id (int, optional): 请求ID，默认为1
             project_id (str): 项目ID
             line_number (list): 断点行号列表
 
@@ -485,7 +495,7 @@ class Codroid:
             json: 设置断点命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/setBreakpoint",
             "db": {
                 project_id: line_number
@@ -496,11 +506,12 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.9 添加断点
-    def AddBreakpoint(self, project_id: str, line_number: list[int]):
+    def AddBreakpoint(self, project_id: str, line_number: list[int], id :int = 1):
         """
         添加断点
 
         参数:
+            id (int, optional): 请求ID，默认为1
             project_id (str): 项目ID
             line_number (list): 要添加的断点行号列表
 
@@ -508,7 +519,7 @@ class Codroid:
             json: 添加断点命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/addBreakpoint",
             "db": {
                 project_id: line_number
@@ -519,11 +530,12 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.10 删除断点
-    def RemoveBreakpoint(self, project_id: str, line_number: list):
+    def RemoveBreakpoint(self, project_id: str, line_number: list[int], id :int = 1):
         """
         移除断点
 
         参数:
+            id (int, optional): 请求ID，默认为1
             project_id (str): 项目ID
             line_number (list): 要移除的断点行号列表
 
@@ -531,7 +543,7 @@ class Codroid:
             json: 移除断点命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/removeBreakpoint",
             "db": {
                 project_id: line_number
@@ -542,15 +554,16 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.11 清除所有断点
-    def ClearBreakpoint(self):
+    def ClearBreakpoint(self, id :int = 1):
         """
         清除所有断点
-
+        参数:
+             id (int, optional): 请求ID，默认为1
         返回值:
             json: 清除断点命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/clearBreakpoint",
         }
         message_str = json.dumps(message_dict)
@@ -558,18 +571,19 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.12 设置启动行
-    def SetStartLine(self, start_line: int):
+    def SetStartLine(self, start_line: int, id :int = 1):
         """
         设置起始行
 
         参数:
+            id (int, optional): 请求ID，默认为1
             start_line (int): 起始行号
 
         返回值:
             json: 设置起始行命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/setStartLine",
             "db": start_line
         }
@@ -578,15 +592,17 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.1.13 清除从指定行运行
-    def ClearStartLine(self):
+    def ClearStartLine(self, id :int = 1):
         """
         清除起始行设置
 
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 清除起始行命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "project/clearStartLine"
         }
         message_str = json.dumps(message_dict)
@@ -594,15 +610,16 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.3 获取全局变量
-    def GetGlobalVars(self) -> json:
+    def GetGlobalVars(self, id :int = 1) -> json:
         """
         获取全局变量
-
+        参数:
+            id (int, optional): 请求ID，默认为1
         返回值:
             json: 全局变量信息
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "globalVar/getVars"
         }
         message_str = json.dumps(message_dict)
@@ -610,11 +627,12 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
-    def SetGlobalVar(self, name: str, value: Union[str, float, dict, list], note: str = " ") -> dict:
+    def SetGlobalVar(self, name: str, value: Union[str, float, dict, list], note: str = " ",id :int = 1) -> dict:
         """
         设置单个全局变量 - 统一实现
 
         参数:
+            id (int, optional): 请求ID，默认为1
             name (str): 变量名
             value: 变量值（支持多种类型）
             note (str): 变量备注
@@ -630,7 +648,7 @@ class Codroid:
         processed_value = self.__process_value_based_on_type(value)
 
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "globalVar/saveVars",
             "db": {
                 name: {
@@ -645,11 +663,12 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
-    def SetGlobalVars(self, value: list) -> json:
+    def SetGlobalVars(self, value: list, id: int = 1) -> json:
         """
         批量设置全局变量
 
         参数:
+            id (int, optional): 请求ID，默认为1
             value: 变量名和值的列表，每个元素是包含name和value的字典
             {变量名1": {"nm": "变量备注1", "val": "变量值1"},变量名2": {"nm": "变量备注2", "val": "变量值2"}}
         返回值:
@@ -657,7 +676,7 @@ class Codroid:
         """
         format_value = self.__convert_to_db_format(value)
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "globalVar/saveVars",
             "db": format_value
         }
@@ -666,7 +685,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.5 删除全局变量
-    def RemoveGlobalVars(self, value_name: list) -> json:
+    def RemoveGlobalVars(self, value_name: list, id: int = 1) -> json:
         """
         批量删除全局变量
 
@@ -677,7 +696,7 @@ class Codroid:
             json: 删除命令的响应结果
         """
         message_dict = {
-            "id": "m912rb1b0wsc2742",
+            "id": id,
             "ty": "globalVar/removeVars",
             "db": value_name
         }
