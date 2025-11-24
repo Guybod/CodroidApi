@@ -11,22 +11,22 @@ class Demo
         Codroid cod = new Codroid("192.168.1.136", 9001);
         cod.DEBUG = true;
         cod.Connect();
-        
+
         // // 运行脚本
         // JsonObject vars = new JsonObject();
         // vars.Add("a", 10);
         // vars.Add("b", 20);
         // cod.RunScript("a = a+b \nprint(a)", vars: vars);
-        
+
         // // 进入远程脚本模式
         // cod.EnterRemoteScriptMode()
-        
+
         // // 运行项目
         // cod.RunProject(test_project_ID);
-        
+
         // // 通过工程映射索引号运行工程
         // cod.RunProjectByIndex(1);
-        
+
         // // 单步运行 (第一次运行时必须输入工程ID，请确保上一步运行完成再次发送单步运行)
         // cod.RunStep(test_project_ID);
         // Thread.Sleep(8000);
@@ -59,15 +59,15 @@ class Demo
         // // cod.RemoveBreakpoint(test_project_ID, lineNumber);
         // // Thread.Sleep(2000);
         // cod.ClearBreakpoint();
-        
+
         // // 设置启动行
         // cod.StopProject();
         // cod.SetStartLine(3);
         // cod.RunProject(test_project_ID);
-        
+
         // // 获取全局变量
         // cod.GetGlobalVars();
-        
+
         // // 保存全局变量
         // cod.SetGlobalVar("Test_str", "100000", "这是一个字符串");
         // // 注意变量名规范，不能以数字开头，不能有特殊字符，不能有空
@@ -83,11 +83,15 @@ class Demo
         // c.Add("vv", 100);
         // c.Add("cc", 100);
         // cod.SetGlobalVar("v994", c, "这是一个对象");
-        
+
         // // 删除全局变量
         // cod.RemoveGlobalVars(new string[] { "v991", "v992", "v993" });
-        
-        
+
+        //// 获取工程变量，运行工程后获取
+        //cod.RunProjectByIndex(1);
+        //cod.GetProjectVars();
+
+
         cod.Disconnect();
     }
 }

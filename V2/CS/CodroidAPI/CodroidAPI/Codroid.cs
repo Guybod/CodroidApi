@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Data;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -139,7 +140,7 @@ namespace CodroidAPI
     /// <param name="jsonString"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public static JsonObject SafeStringToJsonObject(string jsonString)
+    private static JsonObject SafeStringToJsonObject(string jsonString)
     {
         if (string.IsNullOrWhiteSpace(jsonString))
         {
@@ -173,7 +174,7 @@ namespace CodroidAPI
     /// <param name="data"></param>
     /// <param name="timeoutMs">等待响应的超时时间</param>
     /// <returns>服务器的响应内容</returns>
-    public string SendAndReceiveJson(int id, string type, JsonNode data, int timeoutMs = 5000)
+    private string SendAndReceiveJson(int id, string type, JsonNode data, int timeoutMs = 5000)
     {
         var json = new JsonObject
         {
@@ -207,7 +208,7 @@ namespace CodroidAPI
     /// <param name="data"></param>
     /// <param name="timeoutMs">等待响应的超时时间</param>
     /// <returns>服务器的响应内容</returns>
-    public string SendAndReceiveJson(int id, string type, int data, int timeoutMs = 5000)
+    private string SendAndReceiveJson(int id, string type, int data, int timeoutMs = 5000)
     {
         var json = new JsonObject
         {
@@ -241,7 +242,7 @@ namespace CodroidAPI
     /// <param name="data"></param>
     /// <param name="timeoutMs">等待响应的超时时间</param>
     /// <returns>服务器的响应内容</returns>
-    public string SendAndReceiveJson<T>(int id, string type, T[] data, int timeoutMs = 5000)
+    private string SendAndReceiveJson<T>(int id, string type, T[] data, int timeoutMs = 5000)
     {
         var json = new JsonObject
         {
@@ -676,6 +677,7 @@ namespace CodroidAPI
     /// <param name="note">注释</param>
     /// <param name="id">请求ID，默认为1</param>
     /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// 
     /// <returns>服务器的响应内容</returns>
     public JsonObject SetGlobalVar<T>(string name, T[] value, string note = "", int id = 1, int timeoutMs = 5000)
     {
@@ -729,6 +731,14 @@ namespace CodroidAPI
         return null;
     }
 
+
+    /// <summary>
+    /// 删除全局变量
+    /// </summary>
+    /// <param name="names">变量名数组</param>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
     public JsonObject RemoveGlobalVars(string[] names, int id = 1, int timeoutMs = 5000)
     {
         string message = SendAndReceiveJson(id, "globalVar/removeVars", names, timeoutMs);
@@ -739,103 +749,237 @@ namespace CodroidAPI
         }
         return null;
     }
-    
-    
-    /// <summary>
-    /// 机器人上使能
-    /// </summary>
-    /// <param name="id">id</param>
-    /// <param name="timeoutMs">等待响应的超时时间</param>
-    /// <returns>服务器的响应内容</returns>
-    public string SwitchOn(int id = 1, int timeoutMs = 5000)
-    {
-        JsonObject data = new JsonObject();
-        string message = SendAndReceiveJson(id, "Robot/switchOn", data, timeoutMs);
-        if (message != null)
+
+        /// <summary>
+        /// 获取工程变量
+        /// </summary>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject GetProjectVars(int id = 1, int timeoutMs = 5000)
         {
-            return message ;
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "globalVar/GetProjectVarUpdate", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
         }
-        return null;
-    }
-    
-    /// <summary>
-    /// 机器人下使能
-    /// </summary>
-    /// <param name="id">id</param>
-    /// <param name="timeoutMs">等待响应的超时时间</param>
-    /// <returns>服务器的响应内容</returns>
-    public string SwitchOff(int id = 1, int timeoutMs = 5000)
-    {
-        JsonObject data = new JsonObject();
-        string message = SendAndReceiveJson(id, "Robot/switchOff", data, timeoutMs);
-        if (message != null)
+
+        /// <summary>
+        /// RS485初始化
+        /// </summary>
+        /// <param name="baud_rate">波特率</param>
+        /// <param name="stop_bit">停止位</param>
+        /// <param name="data_bit">数据位</param>
+        /// <param name="parityint">校验位，0-无校验，1-奇校验，2-偶校验 默认0</param>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject RS485Init(int baud_rate = 115200, int stop_bit = 1,int data_bit = 8 ,int parityint = 0,int id = 1, int timeoutMs = 5000)
         {
-            return message ;
+            JsonObject data = new JsonObject();
+            data["baud_rate"] = baud_rate;
+            data["stop_bit"] = stop_bit;
+            data["data_bit"] = data_bit;
+            data["parity"] = parityint;
+            string message = SendAndReceiveJson(id, "EC2RS485/init", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
         }
-        return null;
-    }
-    
-    /// <summary>
-    /// 切换到手动模式
-    /// </summary>
-    /// <param name="id">id</param>
-    /// <param name="timeoutMs">等待响应的超时时间</param>
-    /// <returns>服务器的响应内容</returns>
-    public string ToManual(int id = 1, int timeoutMs = 5000)
-    {
-        JsonObject data = new JsonObject();
-        string message = SendAndReceiveJson(id, "Robot/toManual", data, timeoutMs);
-        if (message != null)
+
+        /// <summary>
+        /// 清空RS485读缓冲区
+        /// </summary>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject RS485FlushReadBuffer(int id = 1, int timeoutMs = 5000)
         {
-            return message ;
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "EC2RS485/flushReadBuffer", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
         }
-        return null;
-    }
-    
-    /// <summary>
-    /// 切换到自动模式
-    /// </summary>
-    /// <param name="id">id</param>
-    /// <param name="timeoutMs">等待响应的超时时间</param>
-    /// <returns>服务器的响应内容</returns>
-    public string ToAuto(int id = 1, int timeoutMs = 5000)
-    {
-        JsonObject data = new JsonObject();
-        string message = SendAndReceiveJson(id, "Robot/toAuto", data, timeoutMs);
-        if (message != null)
+
+        /// <summary>
+        /// RS485读取数据
+        /// </summary>
+        /// <param name="length">要读取的数据长度</param>
+        /// <param name="timeout">超时时间（毫秒），默认3000</param>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject RS485Read(int length, int timeout = 3000, int id = 1, int timeoutMs = 5000)
         {
-            return message ;
+            JsonObject data = new JsonObject();
+            data["length"] = length;
+            data["timeout"] = timeout;
+            string message = SendAndReceiveJson(id, "EC2RS485/read", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
         }
-        return null;
-    }
-    
-    /// <summary>
-    /// 切换到远程模式
-    /// </summary>
-    /// <param name="id">id</param>
-    /// <param name="timeoutMs">等待响应的超时时间</param>
-    /// <returns>服务器的响应内容</returns>
-    public string ToRemote(int id = 1, int timeoutMs = 5000)
-    {
-        JsonObject data = new JsonObject();
-        string message = SendAndReceiveJson(id, "Robot/toRemote", data, timeoutMs);
-        if (message != null)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hexString">要写入的十进制数组（对应 hex）</param>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject RS485Write(int[] hexString, int id = 1, int timeoutMs = 5000)
         {
-            return message ;
+            string message = SendAndReceiveJson(id, "EC2RS485/write", hexString, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
         }
-        return null;
-    }
+
+        /// <summary>
+        /// 创建Tcp设备
+        /// </summary>
+        /// <param name="devicename">设备名称,唯一值</param>
+        /// <param name="ip">设备IP地址</param>
+        /// <param name="port">设备端口号</param>
+        /// <param name="slavedId">从机地址</param>
+        /// <param name="endian">字节序：1-大端，2-小端，默认1</param>
+        /// <param name="id">请求ID，默认为1</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject SetModbusTcpDevice(string devicename, string ip, int port, int slavedId = 1, int endian = 1, int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            data["name"] = devicename;
+            data["ip"] = ip;
+            data["port"] = port;
+            data["slavedId"] = slavedId;
+            data["endian"] = endian;
+            string message = SendAndReceiveJson(id, "ModbusTcp/setDevice", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 机器人上使能
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject SwitchOn(int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "Robot/switchOn", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
+    
+        /// <summary>
+        /// 机器人下使能
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject SwitchOff(int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "Robot/switchOff", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
+    
+        /// <summary>
+        /// 切换到手动模式
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject ToManual(int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "Robot/toManual", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 切换到自动模式
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject ToAuto(int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "Robot/toAuto", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
+    
+        /// <summary>
+        /// 切换到远程模式
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="timeoutMs">等待响应的超时时间</param>
+        /// <returns>服务器的响应内容</returns>
+        public JsonObject ToRemote(int id = 1, int timeoutMs = 5000)
+        {
+            JsonObject data = new JsonObject();
+            string message = SendAndReceiveJson(id, "Robot/toRemote", data, timeoutMs);
+            if (message != null)
+            {
+                JsonObject messageJson = SafeStringToJsonObject(message);
+                return messageJson;
+            }
+            return null;
+        }
     
 
     
-    /// <summary>
-    /// 释放资源
-    /// </summary>
-    public void Dispose()
-    {
-        Disconnect();
-        _stream?.Dispose();
-        _client?.Dispose();
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
+        {
+            Disconnect();
+            _stream?.Dispose();
+            _client?.Dispose();
+        }
     }
-}
 }

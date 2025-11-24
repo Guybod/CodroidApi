@@ -663,7 +663,7 @@ class Codroid:
         return self._safe_parse_response(response)
 
     # 2.2.2.4 保存全局变量
-    def SetGlobalVars(self, value: list, id: int = 1) -> json:
+    def __SetGlobalVars(self, value: list, id: int = 1) -> json:
         """
         批量设置全局变量
 
