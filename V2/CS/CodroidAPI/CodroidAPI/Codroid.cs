@@ -728,10 +728,112 @@ namespace CodroidAPI
         }
         return null;
     }
-
+    
+    /// <summary>
+    /// 批量删除全局变量
+    /// </summary>
+    /// <param name="names">要删除的变量名列表</param>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
     public JsonObject RemoveGlobalVars(string[] names, int id = 1, int timeoutMs = 5000)
     {
         string message = SendAndReceiveJson(id, "globalVar/removeVars", names, timeoutMs);
+        if (message != null)
+        {
+            JsonObject messageJson = SafeStringToJsonObject(message);
+            return messageJson ;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 获取当前所有工程变量值，必须在工程运行时有效
+    /// </summary>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
+    public JsonObject GetProjectVars(int id = 1, int timeoutMs = 5000)
+    {
+        JsonObject data = new JsonObject();
+        string message = SendAndReceiveJson(id, "globalVar/GetProjectVarUpdate", data,timeoutMs);
+        if (message != null)
+        {
+            JsonObject messageJson = SafeStringToJsonObject(message);
+            return messageJson ;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 初始化RS485通信参数
+    /// </summary>
+    /// <param name="baudRate">波特率，默认115200</param>
+    /// <param name="stopBit">停止位，默认1</param>
+    /// <param name="dataBit">数据位，默认8</param>
+    /// <param name="parity">校验位，0-无校验，1-奇校验，2-偶校验 默认0</param>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
+    public JsonObject Rs485Init( int baudRate = 115200, int stopBit = 1, int dataBit = 8, int parity = 0,int id = 1, int timeoutMs = 5000)
+    {
+        JsonObject data = new JsonObject();
+        data["baudrate"] = baudRate ;
+        data["stopBit"] = stopBit ;
+        data["dataBit"] = dataBit ;
+        data["parity"] = parity ;
+        string message = SendAndReceiveJson(id, "EC2RS485/init", data,timeoutMs);
+        if (message != null)
+        {
+            JsonObject messageJson = SafeStringToJsonObject(message);
+            return messageJson ;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 清空RS485读缓冲区
+    /// </summary>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
+    public JsonObject Rs485FlushReadBuffer(int id = 1, int timeoutMs = 5000)
+    {
+        JsonObject data = new JsonObject();
+        string message = SendAndReceiveJson(id, "EC2RS485/flushReadBuffer", data,timeoutMs);
+        if (message != null)
+        {
+            JsonObject messageJson = SafeStringToJsonObject(message);
+            return messageJson ;
+        }
+        return null;
+    }
+    
+    /// <summary>
+    /// 从RS485读取数据
+    /// </summary>
+    /// <param name="length">要读取的数据长度</param>
+    /// <param name="timeout">超时时间（毫秒），默认3000</param>
+    /// <param name="id">请求ID，默认为1</param>
+    /// <param name="timeoutMs">等待响应的超时时间</param>
+    /// <returns>服务器的响应内容</returns>
+    public JsonObject Rs485Read(int length,int timeout = 3000, int id = 1, int timeoutMs = 5000)
+    {
+        JsonObject data = new JsonObject();
+        data["length"] = length;
+        data["timeout"] = timeout;
+        string message = SendAndReceiveJson(id, "EC2RS485/read", data,timeoutMs);
+        if (message != null)
+        {
+            JsonObject messageJson = SafeStringToJsonObject(message);
+            return messageJson ;
+        }
+        return null;
+    }
+
+    public JsonObject Rs485Write(int[] data, int id = 1, int timeoutMs = 5000)
+    {
+        string message = SendAndReceiveJson(id, "EC2RS485/write", data,timeoutMs);
         if (message != null)
         {
             JsonObject messageJson = SafeStringToJsonObject(message);

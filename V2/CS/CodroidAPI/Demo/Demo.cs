@@ -87,6 +87,21 @@ class Demo
         // // 删除全局变量
         // cod.RemoveGlobalVars(new string[] { "v991", "v992", "v993" });
         
+        // // 获取工程变量(必须在程序运行中才有效)
+        // cod.RunProjectByIndex(0);
+        // cod.GetProjectVars();
+        
+        // // Rs485初始化
+        // cod.Rs485Init();
+        
+        // // Rs485清空缓存
+        // cod.Rs485FlushReadBuffer();
+        
+        // // Rs485读
+        // cod.Rs485Read(10);
+
+        // // Rs485写
+        // cod.Rs485Write(new int[] {12,34,56,78,90});
         
         cod.Disconnect();
     }
