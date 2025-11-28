@@ -103,7 +103,7 @@ if 0:
     cod.GetGlobalVars()
 
 # 2.2.2.4 保存全局变量(目前不支持bool变量直接发送)
-if 1:
+if 0:
     # cod.SetGlobalVar("Test_str", "100000","这是一个字符串")
     # 注意变量名规范，不能以数字开头，不能有特殊字符，不能有空格
     # cod.SetGlobalVar("111Test_str", "100000","这是一个字符串")
@@ -128,7 +128,7 @@ if 0:
     cod.RS485Init(115200)
     # 2.2.4.4 485发送数据
     time.sleep(0.5)
-    cod.RS485Write([1,2,3,4,5])
+    # cod.RS485Write([1,2,3,4,5])
 # 2.2.4.2 485清空缓存
 if 0:
     cod.RS485FlushReadBuffer()
