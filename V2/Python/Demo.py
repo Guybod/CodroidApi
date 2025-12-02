@@ -237,6 +237,12 @@ if 0:
 if 0:
     cod.MovCandle()
 
+if 1:
+    cod.SwitchOn()
+    cod.MovJ([0.00,-25.00,155.00,-43.00,-3.00,181.00])
+    time.sleep(2)
+    cod.CRIStartControl(filterType=0, duration=10, startBuffer=3)
+    time.sleep(2)
 # 2.2.11.2 设置 IO 值
 # 2.2.11.1 获取 IO 值
 if 0:
