@@ -394,10 +394,11 @@ def demo3():
     cod = Codroid("192.168.1.136", 9001)
     cod.Connect()
     # 指令间隔由RobotController的control_frequency决定 默认1000(默认1000hz，1ms)
-    cod.CRIStartControl(filterType=0, duration=1, startBuffer=3)
+    res = cod.CRIStartControl(filterType=0, duration=2, startBuffer=3)
+    print(res)
     time.sleep(2)
     # 或者运行交互式控制
-    realtime_ctrl = RealTimeController("127.0.0.1", 8888)
+    realtime_ctrl = RealTimeController("192.168.1.136", 9030)
     realtime_ctrl.interactive_control()
     time.sleep(2)
     # 关闭实时控制接口
@@ -407,5 +408,5 @@ def demo3():
 
 
 if __name__ == "__main__":
-    demo1()
+    demo3()
 
