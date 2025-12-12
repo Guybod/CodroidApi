@@ -10,7 +10,6 @@ from scipy.interpolate import CubicSpline  # 核心算法库
 
 from Codroid import Codroid
 
-
 # ==========================================
 # 1. 数据结构定义
 # ==========================================
@@ -351,7 +350,7 @@ def get_first_point_radians(file_path):
 
 if __name__ == "__main__":
 
-    input_file = "onewPath.txt"
+    input_file = "joint.txt"
 
     # 1. 获取角度版本
     degrees = get_path_degrees(input_file)
@@ -403,7 +402,7 @@ if __name__ == "__main__":
     try:
         print("执行运动")
         # 120秒内走完这些点 (算法会自动处理中间的平滑过渡)
-        controller.move_trajectory(radians, duration=120)
+        controller.move_trajectory(radians, duration=80)
     except KeyboardInterrupt:
         print("\n用户中断停止.")
     finally:
