@@ -1,3 +1,5 @@
+# codroidSDK
+
 # 导入所需的标准库和自定义模块
 import json, math, time
 from TcpClient import TCPClient
@@ -2878,8 +2880,8 @@ class Codroid:
         if duration < 1:
             raise ValueError("duration必须大于等于1")
         message_dict = {
-            "id": "m8y21rn20ws8a974",
-            "ty": "CRI/criStartDataPush",
+            "id": 1,
+            "ty": "CRI/StartDataPush",
             "db": {
                 "ip": ip,
                 "port": port,
@@ -2900,7 +2902,7 @@ class Codroid:
         """
         message_dict = {
             "id": "m8y21rn20ws8a974",
-            "ty": "CRI/criStopDataPush"
+            "ty": "CRI/StopDataPush"
         }
         message_str = json.dumps(message_dict)
         response = self.client.send(message_str, self.DEBUG)
